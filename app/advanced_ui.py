@@ -419,16 +419,8 @@ class AdvancedMovieLibrary(QMainWindow):
         # Apply dark theme IMMEDIATELY to prevent white flash
         self.setStyleSheet("QMainWindow { background-color: #141414; }")
         
-        # Get screen size and set window to 90% of screen
-        screen = QApplication.desktop().screenGeometry()
-        width = int(screen.width() * 0.9)
-        height = int(screen.height() * 0.9)
-        self.setGeometry(
-            int((screen.width() - width) / 2),
-            int((screen.height() - height) / 2),
-            width,
-            height
-        )
+        # Maximize window to fit screen properly
+        self.showMaximized()
         
         # Central widget
         central = QWidget()
@@ -465,6 +457,10 @@ class AdvancedMovieLibrary(QMainWindow):
         # Only create player when actually needed to speed up startup
         self.video_player = None
         self._player_initialized = False
+        
+        # Track previous view for returning after video playback
+        self.previous_view = "home"
+        self.previous_scroll_position = 0
         
         # Background scanner
         self.scanner = None
@@ -605,6 +601,10 @@ class AdvancedMovieLibrary(QMainWindow):
     
     def auto_load_content(self):
         """Auto-load content on startup - scan if empty, fetch metadata"""
+        print("========================================")
+        print("auto_load_content() START")
+        print("========================================")
+        
         # Show loading indicator
         loading_label = QLabel("Loading your library...")
         loading_label.setStyleSheet("""
@@ -616,50 +616,72 @@ class AdvancedMovieLibrary(QMainWindow):
         self.home_layout.insertWidget(1, loading_label)
         QApplication.processEvents()
         
+        print("Loading label added, fetching movies...")
+        
+        def remove_loading_label():
+            """Helper to remove loading label"""
+            try:
+                print("Removing loading label...")
+                if hasattr(self, 'home_layout'):
+                    for i in range(self.home_layout.count()):
+                        item = self.home_layout.itemAt(i)
+                        if item and item.widget() and isinstance(item.widget(), QLabel):
+                            if "Loading" in item.widget().text():
+                                item.widget().deleteLater()
+                                print("✓ Loading label removed")
+                                break
+            except Exception as e:
+                print(f"Error removing loading label: {e}")
+        
         try:
             # Check if we have any content
-            response = requests.get(f"{API_URL}/movies", timeout=5)
+            print("Fetching movies from backend...")
+            response = requests.get(f"{API_URL}/movies", timeout=10)
+            print(f"Got response: {response.status_code}")
+            
             if response.status_code == 200:
                 movies = response.json()
+                print(f"Movies count: {len(movies) if movies else 0}")
+                
+                # Remove loading label in all cases
+                remove_loading_label()
                 
                 # If empty, start background scan
                 if not movies or len(movies) == 0:
                     print("No content found, starting background scan...")
-                    # Remove loading label
-                    if hasattr(self, 'home_layout'):
-                        for i in range(self.home_layout.count()):
-                            item = self.home_layout.itemAt(i)
-                            if item and item.widget() and isinstance(item.widget(), QLabel):
-                                if "Loading" in item.widget().text():
-                                    item.widget().deleteLater()
-                                    break
                     self.start_background_scan()
                 else:
                     # Load existing content
-                    # Remove loading label first
-                    if hasattr(self, 'home_layout'):
-                        for i in range(self.home_layout.count()):
-                            item = self.home_layout.itemAt(i)
-                            if item and item.widget() and isinstance(item.widget(), QLabel):
-                                if "Loading" in item.widget().text():
-                                    item.widget().deleteLater()
-                                    break
+                    print("Loading existing content...")
                     self.load_all_content()
+                    print("✓ load_all_content() completed")
                     
                     # Start background TMDB metadata fetch
+                    print("Starting TMDB fetch...")
                     self.start_tmdb_fetch()
+                    print("✓ TMDB fetch started")
             else:
+                print(f"Backend returned status: {response.status_code}")
+                remove_loading_label()
                 self._show_empty_state()
+        except requests.exceptions.Timeout:
+            print("Backend request timed out")
+            remove_loading_label()
+            self._show_empty_state()
         except requests.exceptions.ConnectionError:
             print("Backend connection error - backend may still be starting")
-            # Don't show modal dialog on startup - just show empty state
-            # Backend might still be initializing
+            remove_loading_label()
             self._show_empty_state()
         except Exception as e:
             print(f"Error in auto_load_content: {e}")
             import traceback
             traceback.print_exc()
+            remove_loading_label()
             self._show_empty_state()
+        
+        print("========================================")
+        print("auto_load_content() END")
+        print("========================================")
     
     def start_tmdb_fetch(self):
         """Start background TMDB metadata fetching"""
@@ -782,22 +804,24 @@ class AdvancedMovieLibrary(QMainWindow):
     
     def load_all_content(self):
         """Load content for home view"""
+        print(">>> load_all_content() START")
         try:
             # Fetch movies
+            print("  Fetching movies...")
             response = requests.get(f"{API_URL}/movies", timeout=5)
-            print(f"Movies API response: {response.status_code}")
+            print(f"  Movies API response: {response.status_code}")
             
             if response.status_code == 200:
                 movies = response.json()
-                print(f"Movies received: {type(movies)}, count: {len(movies) if movies else 0}")
+                print(f"  Movies received: {type(movies)}, count: {len(movies) if movies else 0}")
                 
                 # Check if movies is None or empty
                 if not movies or not isinstance(movies, list) or len(movies) == 0:
-                    print("No movies found in database")
+                    print("  No movies found in database")
                     self._show_empty_state()
                     return
                 
-                print(f"Loading {len(movies)} movies")
+                print(f"  Loading {len(movies)} movies into UI...")
                 
                 # Clear any existing error messages
                 while self.home_layout.count() > 1:
@@ -806,6 +830,7 @@ class AdvancedMovieLibrary(QMainWindow):
                         widget = item.widget()
                         widget.deleteLater()
                 
+                print("  Setting featured movie...")
                 # Set featured
                 if len(movies) > 0 and isinstance(movies[0], dict):
                     try:
@@ -817,12 +842,13 @@ class AdvancedMovieLibrary(QMainWindow):
                             pass
                         self.hero.play_btn.clicked.connect(lambda m=movies[0]: self.play_movie(m))
                     except Exception as e:
-                        print(f"Error setting featured movie: {e}")
+                        print(f"  Error setting featured movie: {e}")
                 
+                print("  Creating continue watching row...")
                 # Continue watching (movies with progress)
                 continue_watching = [m for m in movies if m.get('last_position', 0) > 0]
                 if continue_watching:
-                    print(f"Found {len(continue_watching)} movies to continue watching")
+                    print(f"  Found {len(continue_watching)} movies to continue watching")
                     self.continue_watching_row = CategoryRow("Continue Watching")
                     for movie in continue_watching[:10]:
                         card = AdvancedMovieCard(movie)
@@ -830,10 +856,12 @@ class AdvancedMovieLibrary(QMainWindow):
                         card.info_clicked.connect(self.show_movie_info)
                         self.continue_watching_row.add_card(card)
                     self.home_layout.insertWidget(1, self.continue_watching_row)
+                    self.home_layout.insertWidget(1, self.continue_watching_row)
                 
-                # Get recommendations
+                # Get recommendations (with longer timeout and better error handling)
                 try:
-                    rec_response = requests.get(f"{API_URL}/recommendations/movies", timeout=5)
+                    print("Fetching recommendations...")
+                    rec_response = requests.get(f"{API_URL}/recommendations/movies", timeout=15)
                     if rec_response.status_code == 200:
                         recommended = rec_response.json()
                         if recommended and isinstance(recommended, list) and len(recommended) > 0:
@@ -845,6 +873,12 @@ class AdvancedMovieLibrary(QMainWindow):
                                 card.info_clicked.connect(self.show_movie_info)
                                 self.recommended_row.add_card(card)
                             self.home_layout.insertWidget(self.home_layout.count() - 1, self.recommended_row)
+                        else:
+                            print("No recommendations available")
+                    else:
+                        print(f"Recommendations endpoint returned: {rec_response.status_code}")
+                except requests.exceptions.Timeout:
+                    print("⚠ Recommendations timed out - skipping")
                 except Exception as e:
                     print(f"Error loading recommendations: {e}")
                 
@@ -1029,7 +1063,8 @@ class AdvancedMovieLibrary(QMainWindow):
         
         try:
             print("Initializing video player...")
-            self.video_player = EmbeddedVideoPlayer(self)
+            # Pass return callback to player
+            self.video_player = EmbeddedVideoPlayer(self, return_callback=self.return_from_player)
             self.video_player.hide()
             self.stacked_widget.addWidget(self.video_player)
             self._player_initialized = True
@@ -1040,6 +1075,34 @@ class AdvancedMovieLibrary(QMainWindow):
             import traceback
             traceback.print_exc()
             return False
+            return False
+    
+    def return_from_player(self):
+        """Return to the previous view after closing video player"""
+        try:
+            # Determine which view to return to
+            if self.previous_view == "home":
+                self.stacked_widget.setCurrentWidget(self.home_view)
+            elif self.previous_view == "movies":
+                self.stacked_widget.setCurrentWidget(self.movies_view)
+            elif self.previous_view == "series":
+                self.stacked_widget.setCurrentWidget(self.series_view)
+            else:
+                # Default to home
+                self.stacked_widget.setCurrentWidget(self.home_view)
+            
+            # Restore scroll position if applicable
+            if self.previous_scroll_position > 0:
+                view = self.stacked_widget.currentWidget()
+                if hasattr(view, 'verticalScrollBar'):
+                    view.verticalScrollBar().setValue(self.previous_scroll_position)
+            
+            print(f"✓ Returned to {self.previous_view} view")
+            
+        except Exception as e:
+            print(f"Error returning from player: {e}")
+            # Fallback to home
+            self.stacked_widget.setCurrentWidget(self.home_view)
     
     def play_movie(self, movie):
         """Play a movie using embedded VLC player"""
@@ -1060,6 +1123,23 @@ class AdvancedMovieLibrary(QMainWindow):
                 return
             
             print(f"Playing movie: {movie.get('title')} from {movie_path}")
+            
+            # Save current view state
+            current_widget = self.stacked_widget.currentWidget()
+            if current_widget == self.home_view:
+                self.previous_view = "home"
+            elif current_widget == self.movies_view:
+                self.previous_view = "movies"
+            elif current_widget == self.series_view:
+                self.previous_view = "series"
+            else:
+                self.previous_view = "home"
+            
+            # Save scroll position
+            if hasattr(current_widget, 'verticalScrollBar'):
+                self.previous_scroll_position = current_widget.verticalScrollBar().value()
+            else:
+                self.previous_scroll_position = 0
             
             # Switch to player view
             self.stacked_widget.setCurrentWidget(self.video_player)
@@ -1101,26 +1181,57 @@ class AdvancedMovieLibrary(QMainWindow):
         dialog.play_episode.connect(self.play_episode)
         dialog.exec_()
     
-    def play_episode(self, episode):
-        """Play a series episode using embedded VLC player"""
+    def play_episode(self, episode, series_episodes=None):
+        """Play a series episode using embedded VLC player
+        
+        Args:
+            episode: Episode dict with path, id, etc.
+            series_episodes: Optional list of all episodes for series playback
+        """
         # Initialize player if not already done
         if not self._ensure_player_initialized():
             QMessageBox.warning(self, "Error", "Video player not available.\nPlease install python-vlc:\npip install python-vlc")
             return
         
         try:
+            # Debug: print episode data
+            print(f"DEBUG: Episode data: {episode}")
+            
             # Validate episode path
             ep_path = episode.get("path")
             if not ep_path:
-                QMessageBox.warning(self, "Error", "Episode path not found.")
+                QMessageBox.warning(self, "Error", "Episode path not found in database.")
                 return
             
             if not os.path.exists(ep_path):
-                QMessageBox.warning(self, "Error", f"Episode file not found:\n{ep_path}")
+                QMessageBox.warning(self, "Error", f"Episode file not found:\n{ep_path}\n\nThe file may have been moved or deleted.")
                 return
             
-            print(f"Playing episode: S{episode.get('season_number')}E{episode.get('episode_number')}")
+            season_num = episode.get('season_number', '?')
+            ep_num = episode.get('episode_number', '?')
+            print(f"Playing episode: S{season_num}E{ep_num}")
             print(f"Path: {ep_path}")
+            
+            # Save current view state
+            current_widget = self.stacked_widget.currentWidget()
+            if current_widget == self.home_view:
+                self.previous_view = "home"
+            elif current_widget == self.movies_view:
+                self.previous_view = "movies"
+            elif current_widget == self.series_view:
+                self.previous_view = "series"
+            else:
+                self.previous_view = "series"  # Default to series for episodes
+            
+            # Save scroll position
+            if hasattr(current_widget, 'verticalScrollBar'):
+                self.previous_scroll_position = current_widget.verticalScrollBar().value()
+            else:
+                self.previous_scroll_position = 0
+            
+            # Set episode list in player if provided
+            if series_episodes and self.video_player:
+                self.video_player.episode_list = series_episodes
             
             # Switch to player view
             self.stacked_widget.setCurrentWidget(self.video_player)
@@ -1128,31 +1239,17 @@ class AdvancedMovieLibrary(QMainWindow):
             
             # Play the episode
             episode_id = episode.get('id')
-            self.video_player.play_media(ep_path, episode_id, "episode")
+            start_pos = episode.get("last_position", 0)
+            success = self.video_player.play_media(ep_path, episode_id, "episode", start_pos)
+            
+            if not success:
+                print("⚠️ play_media returned False - playback may have failed")
             
         except Exception as e:
             print(f"Error playing episode: {e}")
             import traceback
             traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"Failed to play episode:\n{str(e)}")
-            
-            # Switch to player
-            self.stacked_widget.setCurrentWidget(self.video_player)
-            self.video_player.show()
-            
-            # Play
-            self.video_player.play_media(
-                ep_path,
-                episode["id"],
-                "episode",
-                episode.get("last_position", 0)
-            )
-            
-        except Exception as e:
-            print(f"Error playing episode: {e}")
-            import traceback
-            traceback.print_exc()
-            QMessageBox.warning(self, "Error", f"Failed to play episode:\n{str(e)}")
+            QMessageBox.warning(self, "Error", f"Failed to play episode:\n{str(e)}\n\nCheck console for details.")
     
     def load_new_popular(self):
         """Load New & Popular - TMDB trending movies and series you DON'T have"""

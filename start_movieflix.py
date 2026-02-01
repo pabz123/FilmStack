@@ -52,11 +52,6 @@ def start_backend_silent():
                 stdin=subprocess.DEVNULL,
                 creationflags=DETACHED_PROCESS | CREATE_NO_WINDOW
             )
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                creationflags=DETACHED_PROCESS | CREATE_NO_WINDOW
-            )
         else:
             # Unix-like systems
             subprocess.Popen(

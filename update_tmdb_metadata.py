@@ -5,17 +5,17 @@ Updates poster and rating information for existing movies
 import sys
 import os
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add backend directory to path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend'))
 
-from backend.database import SessionLocal
-from backend.models import Movie
-from backend.tmdb_notifier import TMDBNotifier
+from database import SessionLocal
+from models import Movie
+from tmdb_notifier import TMDBNotifier
 from dotenv import load_dotenv
 import re
 
 # Load environment variables
-env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+env_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(env_path)
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY', '')
@@ -25,23 +25,31 @@ def clean_title(title):
     # Remove common patterns
     patterns = [
         r'\(NKIRI\.COM\)',
+        r'\(NKIIR\.COM\)',
         r'\.DOWNLOADED\.FROM\.NKIRI\.COM',
         r'\(Awafim\.tv\)',
-        r'\.\d{4}\.',  # Year in dots
+        r'\(Fzmovie\.co\.za\)',
         r'\.WEB-DL',
+        r'\.WEBRip',
         r'\.BluRay',
         r'\.HDTV',
         r'\.DVDRip',
         r'\.BRRip',
-        r'\.\w+\.\w+$',  # File extensions
+        r'\.NF\.WEBRip',
+        r'_480P',
+        r'_\d{3,4}P',
+        r'\[_\d+\]',
+        r'_\d{4}\[_\d+\]',
+        r'__+',  # Double underscores
     ]
     
     clean = title
     for pattern in patterns:
         clean = re.sub(pattern, ' ', clean, flags=re.IGNORECASE)
     
-    # Replace dots with spaces
+    # Replace dots and underscores with spaces
     clean = clean.replace('.', ' ')
+    clean = clean.replace('_', ' ')
     
     # Remove extra spaces
     clean = ' '.join(clean.split())
@@ -53,6 +61,12 @@ def clean_title(title):
     # Remove year from title for search
     if year:
         clean = clean.replace(year, '').strip()
+    
+    # Remove trailing numbers that might be quality indicators
+    clean = re.sub(r'\s+\d{3,4}$', '', clean)
+    
+    # Final cleanup
+    clean = ' '.join(clean.split())
     
     return clean, year
 
@@ -89,7 +103,7 @@ def search_tmdb_movie(notifier, title, year=None):
 def update_movie_metadata():
     """Update metadata for all movies in database"""
     if not TMDB_API_KEY or TMDB_API_KEY == "YOUR_API_KEY":
-        print("❌ Error: TMDB_API_KEY not set in .env file")
+        print("Error: TMDB_API_KEY not set in .env file")
         print("Get a free API key from https://www.themoviedb.org/settings/api")
         return
     
@@ -114,7 +128,7 @@ def update_movie_metadata():
             
             # Skip if already has poster and rating
             if movie.poster and movie.rating:
-                print(f"  ✓ Already has metadata (Rating: {movie.rating})")
+                print(f"  Already has metadata (Rating: {movie.rating})")
                 updated_count += 1
                 continue
             
@@ -128,33 +142,33 @@ def update_movie_metadata():
                 # Update movie with TMDB data
                 if tmdb_data.get('poster_path'):
                     movie.poster = tmdb_data['poster_path']  # Store path, not full URL
-                    print(f"  ✓ Updated poster")
+                    print(f"  + Updated poster")
                 
                 if tmdb_data.get('vote_average'):
                     movie.rating = tmdb_data['vote_average']
-                    print(f"  ✓ Updated rating: {movie.rating}")
+                    print(f"  + Updated rating: {movie.rating}")
                 
                 if tmdb_data.get('overview') and not movie.overview:
                     movie.overview = tmdb_data['overview']
-                    print(f"  ✓ Updated overview")
+                    print(f"  + Updated overview")
                 
                 db.commit()
                 updated_count += 1
-                print(f"  ✓ Updated successfully")
+                print(f"  + Updated successfully")
             else:
-                print(f"  ⚠️  No TMDB match found")
+                print(f"  ! No TMDB match found")
                 failed_count += 1
             
             print()
         
         print("=" * 70)
-        print(f"✓ Complete!")
+        print(f"Complete!")
         print(f"  Updated: {updated_count}/{len(movies)} movies")
         print(f"  Failed: {failed_count}/{len(movies)} movies")
         print("=" * 70)
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
     finally:

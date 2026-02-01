@@ -129,15 +129,20 @@ except Exception as e:
 
 
 class EmbeddedVideoPlayer(QWidget):
-    """Netflix-style embedded video player"""
+    """Netflix-style embedded video player with advanced controls"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, return_callback=None):
         super().__init__(parent)
         self.media_player = None
         self.is_playing = False
         self.is_fullscreen = False
         self.current_movie_id = None
         self.current_type = None
+        self.return_callback = return_callback  # Callback to return to previous view
+        self.current_episode_list = []  # For series playback
+        self.current_episode_index = 0
+        self.subtitle_files = []  # Available subtitle files
+        self.audio_devices = []  # Available audio devices
         
         if not VLC_AVAILABLE:
             print("⚠ VLC not available - player will not function")
@@ -270,12 +275,73 @@ class EmbeddedVideoPlayer(QWidget):
         """)
         button_row.addWidget(self.play_pause_btn)
         
+        # Skip backward button
+        skip_back_btn = QPushButton("⏪")
+        skip_back_btn.setFixedSize(40, 40)
+        skip_back_btn.setToolTip("Skip Back 10s (Left Arrow)")
+        skip_back_btn.clicked.connect(lambda: self.skip(-10))
+        skip_back_btn.setStyleSheet(self.play_pause_btn.styleSheet().replace("50", "40"))
+        button_row.addWidget(skip_back_btn)
+        
+        # Skip forward button
+        skip_forward_btn = QPushButton("⏩")
+        skip_forward_btn.setFixedSize(40, 40)
+        skip_forward_btn.setToolTip("Skip Forward 10s (Right Arrow)")
+        skip_forward_btn.clicked.connect(lambda: self.skip(10))
+        skip_forward_btn.setStyleSheet(self.play_pause_btn.styleSheet().replace("50", "40"))
+        button_row.addWidget(skip_forward_btn)
+        
+        # Next episode button (hidden by default)
+        self.next_episode_btn = QPushButton("Next ▶")
+        self.next_episode_btn.setFixedSize(80, 40)
+        self.next_episode_btn.setToolTip("Next Episode")
+        self.next_episode_btn.clicked.connect(self.play_next_episode)
+        self.next_episode_btn.setStyleSheet(self.play_pause_btn.styleSheet().replace("50", "40"))
+        self.next_episode_btn.hide()  # Hidden until series is playing
+        button_row.addWidget(self.next_episode_btn)
+        
         # Time label
         self.time_label = QLabel("00:00 / 00:00")
         self.time_label.setStyleSheet("color: white; font-size: 14px;")
         button_row.addWidget(self.time_label)
         
         button_row.addStretch()
+        
+        # Subtitle button
+        self.subtitle_btn = QPushButton("CC")
+        self.subtitle_btn.setFixedSize(40, 40)
+        self.subtitle_btn.setToolTip("Subtitles (S)")
+        self.subtitle_btn.clicked.connect(self.show_subtitle_menu)
+        self.subtitle_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: none;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.3);
+            }
+        """)
+        button_row.addWidget(self.subtitle_btn)
+        
+        # Audio button
+        self.audio_btn = QPushButton("🔉")
+        self.audio_btn.setFixedSize(40, 40)
+        self.audio_btn.setToolTip("Audio Settings (A)")
+        self.audio_btn.clicked.connect(self.show_audio_menu)
+        self.audio_btn.setStyleSheet(self.subtitle_btn.styleSheet())
+        button_row.addWidget(self.audio_btn)
+        
+        # Speed button
+        self.speed_btn = QPushButton("1x")
+        self.speed_btn.setFixedSize(40, 40)
+        self.speed_btn.setToolTip("Playback Speed")
+        self.speed_btn.clicked.connect(self.show_speed_menu)
+        self.speed_btn.setStyleSheet(self.subtitle_btn.styleSheet())
+        button_row.addWidget(self.speed_btn)
         
         # Volume slider
         volume_label = QLabel("🔊")
@@ -402,13 +468,10 @@ class EmbeddedVideoPlayer(QWidget):
             print("Exiting fullscreen...")
             self.is_fullscreen = False
             
-            # Exit fullscreen for player widget first
-            self.showNormal()
-            
-            # Exit fullscreen for parent window
+            # Exit fullscreen for parent window first
             parent = self.parent()
-            if parent and hasattr(parent, 'showNormal'):
-                parent.showNormal()
+            if parent and hasattr(parent, 'showMaximized'):
+                parent.showMaximized()
             
             # Show controls
             if hasattr(self, 'controls_widget'):
@@ -424,15 +487,10 @@ class EmbeddedVideoPlayer(QWidget):
             print("Entering fullscreen...")
             self.is_fullscreen = True
             
-            # Get parent window
+            # Get parent window and make it fullscreen
             parent = self.parent()
-            
-            # Enter fullscreen for parent first (if exists)
             if parent and hasattr(parent, 'showFullScreen'):
                 parent.showFullScreen()
-            
-            # Then fullscreen the player
-            self.showFullScreen()
             
             # CRITICAL: Set focus to player so keyboard events work
             self.setFocus()
@@ -554,6 +612,9 @@ class EmbeddedVideoPlayer(QWidget):
             # Start update timer
             self.timer.start()
             
+            # Auto-load subtitles if available
+            QTimer.singleShot(1500, lambda: self.auto_load_subtitles(path))
+            
             print(f"✅ Playback started successfully!")
             return True
             
@@ -613,6 +674,195 @@ class EmbeddedVideoPlayer(QWidget):
             return f"{hours:02d}:{minutes:02d}:{secs:02d}"
         return f"{minutes:02d}:{secs:02d}"
     
+    def skip(self, seconds):
+        """Skip forward/backward by seconds"""
+        if self.media_player:
+            current = self.media_player.get_time()
+            new_time = max(0, current + (seconds * 1000))
+            self.media_player.set_time(new_time)
+            print(f"Skipped {seconds}s to {new_time/1000:.1f}s")
+    
+    def show_subtitle_menu(self):
+        """Show subtitle selection menu"""
+        from PyQt5.QtWidgets import QMenu
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: rgba(0, 0, 0, 0.9);
+                color: white;
+                border: 1px solid #555;
+            }
+            QMenu::item:selected {
+                background-color: #e50914;
+            }
+        """)
+        
+        # Add "Load Subtitle File" option
+        load_action = menu.addAction("📁 Load Subtitle File...")
+        load_action.triggered.connect(self.load_subtitle_file)
+        
+        menu.addSeparator()
+        
+        # Add subtitle track options if available
+        if self.media_player:
+            # Get available subtitle tracks
+            spu_count = self.media_player.video_get_spu_count()
+            if spu_count > 0:
+                current_spu = self.media_player.video_get_spu()
+                
+                # Disable subtitles option
+                disable_action = menu.addAction("❌ Disable Subtitles")
+                disable_action.triggered.connect(lambda: self.media_player.video_set_spu(-1))
+                
+                # List available tracks
+                for i in range(spu_count):
+                    track_desc = self.media_player.video_get_spu_description()
+                    if track_desc and i < len(track_desc):
+                        track_name = track_desc[i][1].decode() if isinstance(track_desc[i][1], bytes) else str(track_desc[i][1])
+                    else:
+                        track_name = f"Track {i+1}"
+                    
+                    action = menu.addAction(f"{'✓ ' if i == current_spu else ''}  {track_name}")
+                    action.triggered.connect(lambda checked, idx=i: self.media_player.video_set_spu(idx))
+        
+        # Show menu at button
+        menu.exec_(self.subtitle_btn.mapToGlobal(self.subtitle_btn.rect().bottomLeft()))
+    
+    def load_subtitle_file(self):
+        """Load external subtitle file"""
+        from PyQt5.QtWidgets import QFileDialog
+        
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Subtitle File",
+            "",
+            "Subtitle Files (*.srt *.ass *.ssa *.vtt);;All Files (*.*)"
+        )
+        
+        if file_path and self.media_player:
+            result = self.media_player.video_set_subtitle_file(file_path)
+            if result == 0:
+                print(f"✓ Loaded subtitle: {file_path}")
+                from PyQt5.QtWidgets import QMessageBox
+                QMessageBox.information(self, "Success", "Subtitle loaded successfully!")
+            else:
+                print(f"✗ Failed to load subtitle: {file_path}")
+                from PyQt5.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Error", "Failed to load subtitle file.")
+    
+    def show_audio_menu(self):
+        """Show audio settings menu"""
+        from PyQt5.QtWidgets import QMenu
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: rgba(0, 0, 0, 0.9);
+                color: white;
+                border: 1px solid #555;
+            }
+            QMenu::item:selected {
+                background-color: #e50914;
+            }
+        """)
+        
+        if self.media_player:
+            # Audio tracks
+            track_count = self.media_player.audio_get_track_count()
+            if track_count > 0:
+                current_track = self.media_player.audio_get_track()
+                
+                menu.addAction("🎵 Audio Tracks:").setEnabled(False)
+                
+                for i in range(track_count):
+                    track_desc = self.media_player.audio_get_track_description()
+                    if track_desc and i < len(track_desc):
+                        track_name = track_desc[i][1].decode() if isinstance(track_desc[i][1], bytes) else str(track_desc[i][1])
+                    else:
+                        track_name = f"Track {i+1}"
+                    
+                    action = menu.addAction(f"{'✓ ' if i == current_track else ''}  {track_name}")
+                    action.triggered.connect(lambda checked, idx=i: self.media_player.audio_set_track(idx))
+                
+                menu.addSeparator()
+            
+            # Audio devices
+            menu.addAction("🔊 Audio Output:").setEnabled(False)
+            
+            # Note: VLC audio_output_device_enum is complex, simplified for now
+            default_action = menu.addAction("✓ Default Output")
+            default_action.setEnabled(False)
+        
+        menu.exec_(self.audio_btn.mapToGlobal(self.audio_btn.rect().bottomLeft()))
+    
+    def show_speed_menu(self):
+        """Show playback speed menu"""
+        from PyQt5.QtWidgets import QMenu
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: rgba(0, 0, 0, 0.9);
+                color: white;
+                border: 1px solid #555;
+            }
+            QMenu::item:selected {
+                background-color: #e50914;
+            }
+        """)
+        
+        speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+        current_speed = self.media_player.get_rate() if self.media_player else 1.0
+        
+        for speed in speeds:
+            action = menu.addAction(f"{'✓ ' if abs(speed - current_speed) < 0.01 else ''}  {speed}x")
+            action.triggered.connect(lambda checked, s=speed: self.set_playback_speed(s))
+        
+        menu.exec_(self.speed_btn.mapToGlobal(self.speed_btn.rect().bottomLeft()))
+    
+    def set_playback_speed(self, speed):
+        """Set playback speed"""
+        if self.media_player:
+            self.media_player.set_rate(speed)
+            self.speed_btn.setText(f"{speed}x")
+            print(f"Playback speed: {speed}x")
+    
+    def play_next_episode(self):
+        """Play next episode in series"""
+        if self.current_episode_list and self.current_episode_index < len(self.current_episode_list) - 1:
+            self.current_episode_index += 1
+            next_episode = self.current_episode_list[self.current_episode_index]
+            
+            # Play next episode
+            self.play_media(
+                path=next_episode.get('path'),
+                movie_id=next_episode.get('id'),
+                media_type='episode',
+                start_position=0
+            )
+            print(f"Playing next episode: {next_episode.get('title')}")
+        else:
+            print("No more episodes")
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Series Complete", "No more episodes available.")
+    
+    def auto_load_subtitles(self, video_path):
+        """Auto-load subtitle file if exists in same folder"""
+        if not self.media_player:
+            return
+        
+        video_dir = os.path.dirname(video_path)
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        
+        # Check for subtitle files with same name
+        subtitle_extensions = ['.srt', '.ass', '.ssa', '.vtt']
+        for ext in subtitle_extensions:
+            subtitle_path = os.path.join(video_dir, video_name + ext)
+            if os.path.exists(subtitle_path):
+                print(f"Auto-loading subtitle: {subtitle_path}")
+                self.media_player.video_set_subtitle_file(subtitle_path)
+                return True
+        
+        return False
+    
     def close_player(self):
         """Close the player and return to library"""
         try:
@@ -633,8 +883,10 @@ class EmbeddedVideoPlayer(QWidget):
         """Finish closing the player"""
         try:
             self.hide()
-            # Signal parent to show library again
-            if self.parent():
+            # Use callback if provided, otherwise fallback to parent method
+            if self.return_callback:
+                self.return_callback()
+            elif self.parent():
                 self.parent().show_library()
         except Exception as e:
             print(f"Error in _finish_close: {e}")

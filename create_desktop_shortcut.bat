@@ -14,7 +14,7 @@ echo Creating silent desktop shortcut...
 echo.
 
 REM Create shortcut using PowerShell
-powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\MovieFlix.lnk'); $Shortcut.TargetPath = '%MOVIEFLIX_DIR%MovieFlix_Silent.vbs'; $Shortcut.WorkingDirectory = '%MOVIEFLIX_DIR%'; $Shortcut.IconLocation = '%MOVIEFLIX_DIR%MovieFlix.ico'; $Shortcut.Description = 'MovieFlix - Your Personal Netflix'; $Shortcut.WindowStyle = 1; $Shortcut.Save()"
+powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%USERPROFILE%\Desktop\MovieFlix.lnk'); $Shortcut.TargetPath = '%MOVIEFLIX_DIR%MovieFlix_Silent.vbs'; $Shortcut.WorkingDirectory = '%MOVIEFLIX_DIR%'; $Shortcut.IconLocation = '%MOVIEFLIX_DIR%MovieFlix.ico,0'; $Shortcut.Description = 'MovieFlix - Your Personal Netflix (Silent Launcher)'; $Shortcut.WindowStyle = 1; $Shortcut.Save()"
 
 if %errorlevel% == 0 (
     echo ========================================

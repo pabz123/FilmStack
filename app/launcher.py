@@ -342,7 +342,7 @@ def main():
             progress = QProgressDialog("Loading MovieFlix...", None, 0, 100, None)
             progress.setWindowTitle("MovieFlix")
             progress.setWindowFlags(Qt.Window | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
-            progress.setModal(True)
+            progress.setModal(False)  # Changed to non-modal for testing
             progress.setMinimumDuration(0)
             progress.setValue(10)
             progress.show()
@@ -363,6 +363,8 @@ def main():
             main_window = [None]  # Use list to modify in closure
             
             def step1():
+                print("Step 1: Initializing components...")
+                _startup_log("Step 1: Initializing")
                 progress.setLabelText("Initializing components...")
                 progress.setValue(30)
                 app.processEvents()
@@ -374,14 +376,22 @@ def main():
                 app.processEvents()
                 try:
                     _startup_log("Creating main window")
+                    print("Creating AdvancedMovieLibrary...")
+                    
                     main_window[0] = AdvancedMovieLibrary()
+                    
                     _startup_log("Main window created")
+                    print("✓ AdvancedMovieLibrary created successfully")
+                    
                     QTimer.singleShot(50, step3)
                 except Exception as e:
                     _startup_log(f"Error creating window: {e}")
+                    print(f"ERROR creating window: {e}")
+                    import traceback
+                    traceback.print_exc()
                     progress.close()
                     from PyQt5.QtWidgets import QMessageBox
-                    QMessageBox.critical(None, "Error", f"Failed to create window:\n{str(e)}")
+                    QMessageBox.critical(None, "Error", f"Failed to create window:\n{str(e)}\n\nCheck console for details.")
                     sys.exit(1)
             
             def step3():
@@ -389,14 +399,26 @@ def main():
                 progress.setValue(90)
                 app.processEvents()
                 
+                print("Step 3: Showing main window...")
+                _startup_log("Step 3: Showing window")
+                
                 # Show main window
                 if main_window[0]:
-                    main_window[0].show()
-                    _startup_log("Main window shown")
+                    try:
+                        main_window[0].show()
+                        print("✓ Main window shown")
+                        _startup_log("Main window shown")
+                    except Exception as e:
+                        print(f"ERROR showing window: {e}")
+                        _startup_log(f"Error showing window: {e}")
+                else:
+                    print("ERROR: main_window is None!")
+                    _startup_log("ERROR: main_window is None")
                 
                 # Close progress
                 progress.setValue(100)
                 progress.close()
+                print("✓ Progress dialog closed")
             
             # Start async window creation
             QTimer.singleShot(100, step1)

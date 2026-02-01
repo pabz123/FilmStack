@@ -1,362 +1,161 @@
-# 🎬 MovieFlix - Your Personal Netflix
+# 🎬 MovieFlix - Personal Netflix-Style Streaming Library
 
-**Version 2.0** | Production Ready ✅
+A beautiful, feature-rich personal movie streaming application with a Netflix-inspired UI, built with PyQt5 and FastAPI.
 
-Transform your local movie and TV show collection into a **professional Netflix-style streaming service**. Beautiful UI, embedded video player, automatic metadata fetching, and zero monthly fees.
-
-![MovieFlix](https://img.shields.io/badge/Platform-Windows-blue)
-![Python](https://img.shields.io/badge/Python-3.8+-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
-
----
+![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
+![PyQt5](https://img.shields.io/badge/PyQt5-5.15+-green.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-teal.svg)
 
 ## ✨ Features
 
-### **User Interface**
-- ✅ **Netflix-style dark theme** with smooth animations
-- ✅ **Professional splash screen** and loading indicators
-- ✅ **Responsive layout** that scales to your screen
-- ✅ **Hover effects** on movie cards
-- ✅ **Custom MovieFlix red "M" icon** in taskbar
+### 🎥 Enhanced Video Player
+- **VLC-powered playback** - All video formats supported
+- **Skip controls** - Jump forward/backward 10 seconds
+- **Subtitle support** - Auto-detect .srt files or load external subtitles
+- **Audio track selection** - Switch between multiple audio tracks
+- **Playback speed control** - Watch at 0.5x to 2.0x speed
+- **Next episode** - Binge-watch series seamlessly
+- **Keyboard shortcuts** - Full keyboard control
 
-### **Video Playback**
-- ✅ **Embedded VLC player** for in-window playback
-- ✅ **Fullscreen support** with keyboard shortcuts
-- ✅ **Play/pause, seek, volume control**
-- ✅ **Resume from last position** (continue watching)
-- ✅ **Mouse wheel volume control**
+### 🎨 Beautiful UI
+- **Netflix-style interface** - Modern, sleek design
+- **Movie posters** - Auto-fetched from TMDB (94% coverage)
+- **Smooth animations** - Hover effects and transitions
+- **Responsive layout** - Maximized window fits your screen perfectly
+- **Dark theme** - Easy on the eyes
 
-### **Content Management**
-- ✅ **Auto-metadata from TMDB** (posters, descriptions, ratings)
-- ✅ **Background library scanning** (non-blocking)
-- ✅ **Automatic poster fetching** on startup
-- ✅ **Series management** with seasons/episodes
-- ✅ **Import folder** functionality
-- ✅ **Search** movies and shows
+### 🚀 Smart Features
+- **Auto library scanning** - Detects movies and series automatically
+- **TMDB metadata** - Fetches posters, ratings, and descriptions
+- **Watch history** - Tracks what you've watched
+- **Resume playback** - Continue where you left off
+- **Series management** - Organized by seasons and episodes
+- **Smart navigation** - Returns to exact position after watching
 
-### **User Features**
-- ✅ **User authentication** with registration
-- ✅ **Profile management** with avatar selection
-- ✅ **Watch history** tracking
-- ✅ **Continue watching** section
-- ✅ **New & Popular** (TMDB trending content)
+### 🎯 User Experience
+- **Silent startup** - No console windows, professional app experience
+- **Desktop shortcut** - One-click launch with custom icon
+- **Fullscreen mode** - Immersive viewing that covers entire screen
 
-### **Performance**
-- ✅ **Fast startup** (2-3 seconds to main window)
-- ✅ **Lazy VLC initialization** (only when playing video)
-- ✅ **Async window creation** (no freezing)
-- ✅ **Silent launcher** - no console windows
-- ✅ **Standalone .exe** (portable Windows app)
+## 📋 Requirements
 
----
+- **Python 3.8+**
+- **VLC Media Player** (bundled in VLC/ folder)
+- **Windows** (Linux/macOS compatible with minor adjustments)
 
 ## 🚀 Quick Start
 
-### **Option 1: Using .exe (Easiest)** ⭐
-
-1. **Build or download MovieFlix.exe**
-   ```cmd
-   build_exe.bat
-   ```
-
-2. **Add your media**
-   - Movies → `library\mo\`
-   - TV Shows → `library\series\`
-
-3. **Run MovieFlix.exe**
-   - Double-click the .exe
-   - Or run: `MovieFlix.exe`
-
-4. **Login**
-   - Username: `admin`
-   - Password: `admin123`
-
-### **Option 2: Using Complete Launcher**
-
-```cmd
-start_movieflix_complete.bat
-```
-- ✅ Starts backend automatically
-- ✅ Launches MovieFlix app
-- ✅ One-click solution
-
-### **Option 3: Development Setup**
-
-**1. Install Python dependencies**
-```cmd
-venv\Scripts\activate
+### 1. Install Dependencies
+```bash
 pip install -r requirements.txt
 ```
 
-**2. Configure .env file**
+### 2. Setup TMDB API (Optional, for posters)
+Create a `.env` file:
 ```env
-TMDB_API_KEY=6c2d8d780ce73c06e3955159c3caf0fe
-API_HOST=127.0.0.1
+TMDB_API_KEY=your_api_key_here
 API_PORT=8765
+API_HOST=127.0.0.1
+```
+Get a free API key from [TMDB](https://www.themoviedb.org/settings/api)
+
+### 3. Create Desktop Shortcut
+```bash
+create_desktop_shortcut.bat
 ```
 
-**3. Add VLC**
-- Copy VLC installation to `VLC\` folder
-- Must include: `libvlc.dll`, `libvlccore.dll`, `plugins\`
-
-**4. Setup Library**
-```
-library/
-├── mo/              # Movies go here
-│   ├── Inception.mkv
-│   └── The Matrix.mp4
-└── series/          # TV shows go here
-    └── Breaking Bad/
-        ├── Season 1/
-        └── Season 2/
-```
-
-**5. Launch**
-```cmd
-# Terminal 1: Backend
-venv\Scripts\python.exe -m uvicorn backend.main:app --reload --port 8765
-
-# Terminal 2: Frontend  
-python start_movieflix.py
-```
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Space` | Play/Pause |
-| `F` or `F11` | Toggle Fullscreen |
-| `ESC` | Exit Fullscreen |
-| `←` | Seek backward 10 sec |
-| `→` | Seek forward 10 sec |
-| `↑` | Volume up |
-| `↓` | Volume down |
-| `Mouse Wheel` | Volume control |
-| `Click` | Show/hide controls (fullscreen) |
-
----
-
-## 📁 Project Structure
-
-```
-D:\movie_library\
-├── app/                      # Frontend (PyQt5)
-│   ├── launcher.py          # Startup & loading
-│   ├── advanced_ui.py       # Main window (1646 lines)
-│   ├── login_dialog.py      # Authentication UI
-│   ├── embedded_player.py   # VLC player
-│   └── ...                  # Other UI modules
-│
-├── backend/                  # Backend (FastAPI)
-│   ├── main.py              # API server
-│   ├── database.py          # SQLite config
-│   ├── models.py            # Data models
-│   └── ...                  # Other backend modules
-│
-├── library/                  # Your media files
-│   ├── mo/                  # Movies
-│   └── series/              # TV shows
-│
-├── VLC/                      # VLC player files
-│
-├── start_movieflix.py        # Main entry point
-├── start_movieflix_complete.bat  # Complete launcher
-├── build_exe.bat            # Build .exe script
-├── MovieFlix.exe            # Standalone executable
-├── MovieFlix.ico            # Application icon
-└── .env                     # Configuration
-```
-
-### **Browsing Content**
-- **Home:** Featured movies, recommendations, continue watching
-- **Movies:** All movies organized by rating (Blockbusters 7.5+, Hidden Gems, etc.)
-- **TV Shows:** Browse series, select seasons and episodes  
-- **New & Popular:** TMDB trending content (not in your library)
-- **My List:** Library statistics and complete content list
-
-### **Playing Videos**
-1. Click any movie poster or card
-2. Video plays in embedded VLC player
-3. Use keyboard shortcuts or mouse controls
-4. Click anywhere to show/hide controls in fullscreen
-
-### **Managing Library**
-- **Import Folder:** User menu → "Import Folder" → Select media folder
-- **Automatic Scan:** Runs on startup in background
-- **Manual Refresh:** Import Folder scans and adds new content
-
-### **Profile Settings**
-- Click user icon → "Profile Settings"
-- Change username, email, password
-- Select avatar from 12 emoji options
-
-### **Search**
-- Type in search bar (top right)
-- Searches titles and descriptions in real-time
-
----
-
-## 🔧 Tech Stack
-
-| Component | Technology |
-|-----------|------------|
-| **Frontend** | PyQt5 (Desktop GUI) |
-| **Backend** | FastAPI (REST API) |
-| **Database** | SQLite + SQLAlchemy ORM 1.4.48 |
-| **Video Player** | VLC (python-vlc) |
-| **Metadata** | TMDB API |
-| **Packaging** | PyInstaller |
-
-**Code Statistics:**
-- 27 Python files
-- 17,000+ lines of code
-- 10 backend modules
-- 10 frontend modules
-- 15+ documentation files
-
----
-
-## 🐛 Troubleshooting
-
-### **"HTTPConnectionPool timeout" on login**
-**Problem:** Backend not running
-
-**Solution:**
-```cmd
-start_movieflix_complete.bat
-```
-This starts backend automatically.
-
-### **Stuck on loading after login**
-**Problem:** Window creation blocking
-
-**Solution:** Latest version fixed this (v2.0). Update code or rebuild .exe:
-```cmd
-build_exe.bat
-```
-
-### **Videos won't play**
-**Problem:** VLC not found
-
-**Solutions:**
-1. Check VLC folder exists:
-   ```cmd
-   dir D:\movie_library\VLC\
-   ```
-2. Copy VLC installation to `VLC\` folder
-3. Test VLC: `python test_vlc.py`
-
-### **Movies not showing**
-**Problem:** Library folder empty or scan failed
-
-**Solutions:**
-- Add movies to `library\mo\`
-- Use Import Folder to scan
-- Check console for scan errors
-
-### **Posters not loading**
-**Problem:** TMDB API or network issue
-
-**Solutions:**
-1. Check `.env` has TMDB_API_KEY
-2. Run manual fetch: `python fetch_posters_now.py`
-3. Posters fetch automatically in background on startup
-
-### **Backend error**
-**Problem:** Database or dependency issue
-
-**Solutions:**
-```cmd
-# Reinstall dependencies
-pip install -r requirements.txt
-
-# Test backend directly
-venv\Scripts\python.exe -m uvicorn backend.main:app --port 8765
-```
-
-### **Port 8765 already in use**
-**Problem:** Backend process stuck
-
-**Solutions:**
-```cmd
-# Find process
-netstat -ano | findstr :8765
-
-# Kill process (replace <PID>)
-taskkill /F /PID <PID>
-```
-
----
-
-## 📚 Documentation
-
-| File | Purpose |
-|------|---------|
-| **COMPLETE_SYSTEM_DOCUMENTATION.md** | Full system documentation |
-| **MOVIEFLIX_GUIDE.md** | User manual |
-| **EXE_BUILDER_GUIDE.md** | Build .exe instructions |
-| **LOADING_PERFORMANCE_FIXES.md** | Performance optimizations |
-| **BACKEND_TIMEOUT_FIX.md** | Backend connection issues |
-| **POSTER_FETCHER_FIXED.md** | Poster fetching guide |
-| **VLC_SETUP_GUIDE.md** | VLC integration |
-
----
-
-## 📊 Performance
-
-| Metric | Time |
-|--------|------|
-| **Startup (to login)** | 2.5 sec |
-| **Login to main window** | 1-2 sec |
-| **Total startup** | 3.5-4.5 sec |
-| **First video play** | 2-3 sec (VLC init) |
-| **Subsequent videos** | 0.2-0.5 sec |
-
----
-
-## 🚧 Known Issues
-
-- ✅ All critical issues resolved in v2.0
-- Backend must be running for app to work
-- .exe includes ~150-200 MB (VLC + dependencies)
-
----
-
-## 🔄 Version History
-
-**v2.0 - January 30, 2026**
-- ✅ Fixed loading hang after login (async window creation)
-- ✅ 7x faster startup (lazy VLC init)
-- ✅ Redesigned registration page
-- ✅ Fixed poster fetcher database import errors
-- ✅ Icon shows properly in Windows taskbar
-- ✅ Complete code review and documentation update
-- ✅ Reduced backend wait time (10s → 5s)
-
-**v1.0 - Initial Release**
-- Netflix-style UI
-- VLC integration
-- TMDB metadata
-- User authentication
-- Series support
-
----
-
-## 🎬 Enjoy Your Personal Netflix! 🍿
+### 4. Launch MovieFlix
+Double-click the **MovieFlix** icon on your desktop!
 
 **Default Login:**
 - Username: `admin`
 - Password: `admin123`
 
-**Quick Start:**
-```cmd
-start_movieflix_complete.bat
+## 📂 Project Structure
+
 ```
+movie_library/
+├── app/                          # Frontend (PyQt5)
+│   ├── advanced_ui.py           # Main UI
+│   ├── embedded_player.py       # VLC video player
+│   ├── advanced_widgets.py      # Movie cards
+│   └── launcher.py              # Startup
+├── backend/                      # API (FastAPI)
+│   ├── main.py                  # Endpoints
+│   ├── models.py                # Database
+│   ├── scanner.py               # Library scanner
+│   └── metadata.py              # TMDB integration
+├── library/                      # Your movies go here
+├── VLC/                          # VLC player
+├── start_movieflix.py           # Main entry
+├── create_desktop_shortcut.bat  # Desktop icon
+└── update_tmdb_metadata.py      # Fetch posters
+```
+
+## 🎮 Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Play/Pause |
+| `F` | Fullscreen |
+| `←` / `→` | Skip ±10s |
+| `↑` / `↓` | Volume |
+| `M` | Mute |
+| `S` | Subtitles |
+| `A` | Audio tracks |
+| `N` | Next episode |
+| `Esc` | Exit fullscreen |
+
+## 🎬 Usage
+
+### Adding Movies
+1. Place video files in `library/` folder
+2. For series: `library/SeriesName/Season 1/episode.mp4`
+3. MovieFlix auto-scans on startup
+
+### Fetching Posters
+```bash
+venv\Scripts\python.exe update_tmdb_metadata.py
+```
+
+## 🛠️ Tech Stack
+
+- **Frontend:** PyQt5
+- **Backend:** FastAPI + SQLAlchemy
+- **Database:** SQLite
+- **Video:** python-vlc
+- **Metadata:** TMDB API
+
+## 🐛 Troubleshooting
+
+### Backend won't start
+```bash
+kill_port_8765.bat
+```
+
+### No posters
+1. Add `TMDB_API_KEY` to `.env`
+2. Run `update_tmdb_metadata.py`
+
+### Debug mode
+```bash
+debug_startup.bat
+```
+
+## 📊 Status
+
+✅ All core features working  
+✅ 31/33 movies with posters (94%)  
+✅ Enhanced video player  
+✅ Silent desktop launcher  
+✅ Smart navigation  
+
+## 📄 License
+
+MIT License
 
 ---
 
-*Made with ❤️ for movie lovers | Version 2.0 | 2026*
+**Made with ❤️ for movie lovers**
 
-**License:** MIT
+Version 2.1 | February 2026

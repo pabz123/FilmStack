@@ -99,33 +99,42 @@ class LoginDialog(QDialog):
             return
         self.login_btn.setEnabled(False)
         self.login_btn.setText('Signing in...')
+        
+        print(f"Attempting login for user: {username}")
+        
         try:
             # Use HTTPBasicAuth with /auth/me endpoint
             from requests.auth import HTTPBasicAuth
             response = requests.get(f"{self.api_url}/auth/me", 
                                    auth=HTTPBasicAuth(username, password), 
                                    timeout=5)
+            
+            print(f"Login response: {response.status_code}")
+            
             if response.status_code == 200:
                 self.credentials = {'username': username, 'password': password}
                 
-                # Show loading overlay instead of accepting immediately
-                self.show_loading_overlay()
+                print("✓ Login successful!")
+                print("Accepting dialog and closing...")
                 
-                # Emit signal but don't close yet
-                self.login_successful.emit(username, password)
+                # Accept the dialog immediately - no overlay needed
+                # The launcher.py will show its own progress dialog
+                self.accept()
                 
-                # The parent will call close_after_loading() when ready
             else:
+                print(f"Login failed: {response.status_code}")
                 QMessageBox.warning(self, 'Login Failed', 'Invalid credentials.\n\nDefault: admin / admin123')
                 self.password_input.clear()
                 self.password_input.setFocus()
                 self.login_btn.setEnabled(True)
                 self.login_btn.setText('Sign In')
         except requests.exceptions.ConnectionError:
+            print("Connection error to backend")
             QMessageBox.critical(self, 'Connection Error', 'Cannot connect to backend.')
             self.login_btn.setEnabled(True)
             self.login_btn.setText('Sign In')
         except Exception as e:
+            print(f"Login error: {e}")
             QMessageBox.critical(self, 'Error', f'Login error:\n{e}')
             self.login_btn.setEnabled(True)
             self.login_btn.setText('Sign In')

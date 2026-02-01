@@ -123,6 +123,22 @@ def get_db():
 
 
 # ============================================================================
+# HEALTH/STATUS ENDPOINTS
+# ============================================================================
+
+@app.get("/")
+def root():
+    """Root endpoint - API status check."""
+    return {"status": "online", "api": "MovieFlix Backend", "version": "2.0"}
+
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "movieflix-backend"}
+
+
+# ============================================================================
 # MOVIE ENDPOINTS
 # ============================================================================
 

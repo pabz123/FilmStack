@@ -6,8 +6,35 @@ from PyQt5.QtWidgets import (
     QPushButton, QFrame, QGraphicsDropShadowEffect
 )
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QFont
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, pyqtSignal, QThread
 import requests
+
+
+class PosterLoader(QThread):
+    """Background thread for loading poster images"""
+    poster_loaded = pyqtSignal(QPixmap)
+    
+    def __init__(self, poster_url):
+        super().__init__()
+        self.poster_url = poster_url
+    
+    def run(self):
+        """Load poster in background"""
+        try:
+            response = requests.get(self.poster_url, timeout=3)
+            if response.status_code == 200:
+                pixmap = QPixmap()
+                pixmap.loadFromData(response.content)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        220, 280,
+                        Qt.KeepAspectRatioByExpanding,
+                        Qt.SmoothTransformation
+                    )
+                    self.poster_loaded.emit(scaled_pixmap)
+        except Exception as e:
+            # Silently fail - placeholder will remain
+            pass
 
 
 class AdvancedMovieCard(QFrame):
@@ -175,37 +202,39 @@ class AdvancedMovieCard(QFrame):
         self.scale_anim.setEasingCurve(QEasingCurve.OutCubic)
         
     def _load_poster(self):
-        """Load poster image"""
+        """Load poster image asynchronously using QThread"""
         poster = self.movie_data.get('poster', '')
         
-        # Check if it's already a full URL or just a path
-        if poster:
-            try:
-                # If it starts with http, use it directly
-                if poster.startswith('http'):
-                    poster_url = poster
-                else:
-                    # Otherwise, add TMDB base URL
-                    poster_url = f"https://image.tmdb.org/t/p/w500{poster}"
-                
-                print(f"Loading poster: {poster_url}")
-                response = requests.get(poster_url, timeout=2)
-                
-                if response.status_code == 200:
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(response.content)
-                    scaled_pixmap = pixmap.scaled(
-                        220, 280,
-                        Qt.KeepAspectRatioByExpanding,
-                        Qt.SmoothTransformation
-                    )
-                    self.poster_label.setPixmap(scaled_pixmap)
-                    return
-            except Exception as e:
-                print(f"Error loading poster: {e}")
+        # Show placeholder immediately
+        self._show_placeholder()
         
-        # Fallback placeholder
-        self.poster_label.setText(self.movie_data.get('title', 'No Image')[:30])
+        # Check if we have a poster URL
+        if poster:
+            # If it starts with http, use it directly
+            if poster.startswith('http'):
+                poster_url = poster
+            else:
+                # Otherwise, add TMDB base URL
+                poster_url = f"https://image.tmdb.org/t/p/w500{poster}"
+            
+            # Load poster in background thread
+            self.poster_loader = PosterLoader(poster_url)
+            self.poster_loader.poster_loaded.connect(self._on_poster_loaded)
+            self.poster_loader.start()
+    
+    def _on_poster_loaded(self, pixmap):
+        """Called when poster is loaded in background"""
+        self.poster_label.setPixmap(pixmap)
+        self.poster_label.setText("")  # Clear placeholder text
+    
+    def _show_placeholder(self):
+        """Show placeholder with movie title"""
+        title = self.movie_data.get('title', 'No Image')
+        # Shorten very long titles
+        if len(title) > 40:
+            title = title[:37] + "..."
+        
+        self.poster_label.setText(title)
         self.poster_label.setStyleSheet("""
             background-color: #2a2a2a;
             color: #666;
