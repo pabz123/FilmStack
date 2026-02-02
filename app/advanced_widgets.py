@@ -109,8 +109,27 @@ class AdvancedMovieCard(QFrame):
             controls_layout.addWidget(rating_badge)
             controls_layout.addSpacing(5)
         
-        # Play button (only if they have the movie)
-        if not self.movie_data.get('is_tmdb', False) and self.movie_data.get('path'):
+        # Play button (different behavior for series vs movies)
+        if self.movie_data.get('seasons'):  # It's a series
+            self.play_btn = QPushButton("▶ Watch")
+            self.play_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: white;
+                    color: black;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-weight: bold;
+                    font-size: 13px;
+                }
+                QPushButton:hover {
+                    background-color: rgba(255, 255, 255, 0.8);
+                }
+            """)
+            self.play_btn.clicked.connect(lambda: self.play_clicked.emit(self.movie_data))
+            controls_layout.addWidget(self.play_btn)
+        elif not self.movie_data.get('is_tmdb', False) and self.movie_data.get('path'):
+            # It's a movie with a path
             self.play_btn = QPushButton("▶ Play")
             self.play_btn.setStyleSheet("""
                 QPushButton {
@@ -185,6 +204,14 @@ class AdvancedMovieCard(QFrame):
             watched_label = QLabel("✓ Watched")
             watched_label.setStyleSheet("color: #46d369; font-size: 11px;")
             info_layout.addWidget(watched_label)
+        
+        # Series info (seasons/episodes count)
+        if self.movie_data.get('seasons'):
+            season_count = len(self.movie_data['seasons'])
+            episode_count = sum(len(season.get('episodes', [])) for season in self.movie_data['seasons'])
+            series_info = QLabel(f"{season_count} Season{'s' if season_count != 1 else ''} • {episode_count} Episodes")
+            series_info.setStyleSheet("color: #888; font-size: 11px;")
+            info_layout.addWidget(series_info)
         
         layout.addWidget(self.poster_container)
         layout.addWidget(info_container)

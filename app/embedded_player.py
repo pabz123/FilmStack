@@ -72,7 +72,7 @@ Version: 1.0
 import sys
 import os
 import platform
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, QTimer, QEvent
 from PyQt5.QtGui import QPalette, QColor
 
@@ -143,23 +143,27 @@ class EmbeddedVideoPlayer(QWidget):
         self.current_episode_index = 0
         self.subtitle_files = []  # Available subtitle files
         self.audio_devices = []  # Available audio devices
+        self.current_episode_info = None  # Store current episode info for display
+        self.current_series_title = None  # Store series title
         
         if not VLC_AVAILABLE:
             print("⚠ VLC not available - player will not function")
             self.setup_error_ui()
             return
         
-        # Create VLC instance with better options for quality
+        # Create VLC instance with optimal quality settings
         vlc_args = [
-            '--no-video-title-show',
-            '--no-xlib' if platform.system() == 'Linux' else '',
-            '--avcodec-hw=any',  # Hardware decoding
-            '--video-on-top',  # Keep video on top
-            '--no-embedded-video',  # Don't use embedded mode issues
-            '--audio-resampler=soxr',  # High quality audio
-            '--network-caching=1000',
-            '--file-caching=2000',
-            '--quiet'
+            '--no-video-title-show',  # Don't show filename on video
+            '--avcodec-hw=any',  # Hardware acceleration
+            '--audio-resampler=soxr',  # High quality audio resampling
+            '--network-caching=300',  # Low caching for local files
+            '--file-caching=300',
+            '--sout-mux-caching=300',
+            '--cr-average=1000',
+            '--audio-desync=0',  # Keep audio synced
+            '--no-skip-frames',  # Don't skip frames
+            '--no-audio-time-stretch',  # Better audio quality
+            '--quiet'  # Suppress console output
         ]
         vlc_args = [arg for arg in vlc_args if arg]  # Remove empty strings
         
@@ -208,10 +212,39 @@ class EmbeddedVideoPlayer(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        # Video frame
+        # Episode info banner at top (for series)
+        self.episode_info_banner = QWidget()
+        self.episode_info_banner.setStyleSheet("""
+            QWidget {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(0, 0, 0, 220),
+                    stop:0.7 rgba(0, 0, 0, 180),
+                    stop:1 rgba(0, 0, 0, 0));
+                padding: 20px;
+            }
+        """)
+        self.episode_info_banner.setFixedHeight(80)
+        
+        banner_layout = QVBoxLayout(self.episode_info_banner)
+        banner_layout.setContentsMargins(20, 10, 20, 10)
+        
+        self.series_title_label = QLabel()
+        self.series_title_label.setStyleSheet("color: #999; font-size: 14px;")
+        banner_layout.addWidget(self.series_title_label)
+        
+        self.episode_title_label = QLabel()
+        self.episode_title_label.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
+        banner_layout.addWidget(self.episode_title_label)
+        
+        self.episode_info_banner.hide()  # Hidden by default
+        layout.addWidget(self.episode_info_banner)
+        
+        # Video frame - ensure it stretches to fill space
         self.video_frame = QWidget()
         self.video_frame.setStyleSheet("background-color: black;")
-        layout.addWidget(self.video_frame)
+        self.video_frame.setMinimumSize(640, 360)  # Minimum 16:9 size
+        self.video_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(self.video_frame, 1)  # Stretch factor of 1
         
         # Controls at bottom
         controls_bg = QWidget()
@@ -462,20 +495,34 @@ class EmbeddedVideoPlayer(QWidget):
             super().keyPressEvent(event)
     
     def toggle_fullscreen(self):
-        """Toggle fullscreen mode with proper window management"""
+        """Toggle TRUE fullscreen mode - covers entire screen, hides everything"""
         if self.is_fullscreen:
             # Exit fullscreen
             print("Exiting fullscreen...")
             self.is_fullscreen = False
             
-            # Exit fullscreen for parent window first
+            # Get parent window (AdvancedMovieLibrary)
             parent = self.parent()
-            if parent and hasattr(parent, 'showMaximized'):
+            if parent:
+                # Restore window flags to normal
+                parent.setWindowFlags(Qt.Window)
+                
+                # Show navbar if it exists
+                if hasattr(parent, 'nav_bar'):
+                    parent.nav_bar.show()
+                
+                # Exit fullscreen and restore to maximized
+                parent.showNormal()
                 parent.showMaximized()
             
-            # Show controls
+            # Show player controls
             if hasattr(self, 'controls_widget'):
                 self.controls_widget.show()
+            
+            # Show episode info banner if it was visible
+            if hasattr(self, 'episode_info_banner'):
+                if self.current_episode_info:  # Only show if playing episode
+                    self.episode_info_banner.show()
             
             # Update button
             if hasattr(self, 'fullscreen_btn'):
@@ -483,16 +530,31 @@ class EmbeddedVideoPlayer(QWidget):
             
             print("✓ Exited fullscreen mode")
         else:
-            # Enter fullscreen
-            print("Entering fullscreen...")
+            # Enter TRUE fullscreen
+            print("Entering TRUE fullscreen...")
             self.is_fullscreen = True
             
-            # Get parent window and make it fullscreen
+            # Get parent window
             parent = self.parent()
-            if parent and hasattr(parent, 'showFullScreen'):
+            if parent:
+                # Hide navbar to give more screen space
+                if hasattr(parent, 'nav_bar'):
+                    parent.nav_bar.hide()
+                
+                # Make window frameless (no borders) and always on top
+                parent.setWindowFlags(Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+                
+                # Get the FULL screen geometry (including taskbar area)
+                from PyQt5.QtWidgets import QApplication
+                desktop = QApplication.desktop()
+                screen_rect = desktop.screenGeometry(desktop.primaryScreen())
+                
+                # Set window to cover entire screen
+                parent.setGeometry(screen_rect)
                 parent.showFullScreen()
+                parent.show()  # Must call show() after changing window flags
             
-            # CRITICAL: Set focus to player so keyboard events work
+            # Set focus to player so keyboard events work
             self.setFocus()
             
             # Update button
@@ -503,7 +565,7 @@ class EmbeddedVideoPlayer(QWidget):
             if hasattr(self, 'controls_widget'):
                 QTimer.singleShot(3000, self.hide_controls_if_fullscreen)
             
-            print("✓ Entered fullscreen mode - Press ESC or F to exit, SPACE to pause/play")
+            print("✓ Entered TRUE fullscreen mode - Press ESC or F to exit")
     
     def hide_controls_if_fullscreen(self):
         """Hide controls if still in fullscreen"""
@@ -540,6 +602,19 @@ class EmbeddedVideoPlayer(QWidget):
         try:
             self.current_movie_id = movie_id
             self.current_type = media_type
+            
+            # Show episode info if it's a series
+            if media_type == "episode" and self.current_episode_info:
+                self.series_title_label.setText(self.current_series_title or "TV Series")
+                season = self.current_episode_info.get('season_number', '?')
+                episode = self.current_episode_info.get('episode_number', '?')
+                title = self.current_episode_info.get('title', 'Episode')
+                self.episode_title_label.setText(f"S{season}E{episode} - {title}")
+                self.episode_info_banner.show()
+                # Auto-hide after 5 seconds
+                QTimer.singleShot(5000, self.episode_info_banner.hide)
+            else:
+                self.episode_info_banner.hide()
             
             print(f"▶ Loading media: {path}")
             

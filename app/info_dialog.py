@@ -14,6 +14,7 @@ class MovieInfoDialog(QDialog):
     """Detailed movie/series information dialog"""
     
     play_clicked = pyqtSignal(object)
+    delete_clicked = pyqtSignal(object)  # New signal for delete
     
     def __init__(self, item_data, parent=None):
         super().__init__(parent)
@@ -134,6 +135,26 @@ class MovieInfoDialog(QDialog):
         play_btn.clicked.connect(self._on_play)
         button_layout.addWidget(play_btn)
         
+        # Delete button
+        delete_btn = QPushButton("🗑  Remove from Library")
+        delete_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(229, 9, 20, 0.8);
+                color: white;
+                border: none;
+                border-radius: 4px;
+                padding: 12px 30px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(229, 9, 20, 1);
+            }
+        """)
+        delete_btn.setCursor(Qt.PointingHandCursor)
+        delete_btn.clicked.connect(self._on_delete)
+        button_layout.addWidget(delete_btn)
+        
         close_btn = QPushButton("Close")
         close_btn.setStyleSheet("""
             QPushButton {
@@ -161,6 +182,10 @@ class MovieInfoDialog(QDialog):
         
         content_layout.addLayout(header)
         
+        # Cast section (fetch from TMDB if we have ID)
+        if item_data.get('id'):
+            self.add_cast_section(content_layout, item_data)
+        
         # Additional info
         if item_data.get('path'):
             path_label = QLabel(f"File: {item_data['path']}")
@@ -177,3 +202,141 @@ class MovieInfoDialog(QDialog):
         """Emit play signal and close"""
         self.play_clicked.emit(self.item_data)
         self.close()
+    
+    def add_cast_section(self, layout, item_data):
+        """Add cast and crew information section"""
+        from backend.metadata import fetch_movie_cast, fetch_series_cast
+        
+        # Determine if it's a movie or series
+        is_series = 'seasons' in item_data or item_data.get('type') == 'series'
+        
+        # Fetch cast (async in real app, but simplified here)
+        cast_info = None
+        try:
+            # Try to get TMDB ID from database
+            # For now, we'll use the item_data ID as TMDB ID
+            # In production, you'd store tmdb_id separately
+            if is_series:
+                cast_info = fetch_series_cast(item_data['id'])
+            else:
+                cast_info = fetch_movie_cast(item_data['id'])
+        except:
+            pass
+        
+        if not cast_info:
+            return
+        
+        # Cast section header
+        cast_header = QLabel("Cast & Crew")
+        cast_header.setStyleSheet("font-size: 20px; font-weight: bold; color: white; margin-top: 20px;")
+        layout.addWidget(cast_header)
+        
+        # Director/Creator info
+        if not is_series and cast_info.get('director'):
+            director_label = QLabel(f"Director: {cast_info['director']}")
+            director_label.setStyleSheet("font-size: 14px; color: #b3b3b3; margin-top: 5px;")
+            layout.addWidget(director_label)
+        elif is_series and cast_info.get('creators'):
+            creators_text = ", ".join(cast_info['creators'])
+            creators_label = QLabel(f"Created by: {creators_text}")
+            creators_label.setStyleSheet("font-size: 14px; color: #b3b3b3; margin-top: 5px;")
+            layout.addWidget(creators_label)
+        
+        # Cast list (horizontal scroll)
+        if cast_info.get('cast'):
+            cast_container = QFrame()
+            cast_container.setStyleSheet("background-color: transparent;")
+            cast_layout = QHBoxLayout(cast_container)
+            cast_layout.setSpacing(15)
+            cast_layout.setContentsMargins(0, 10, 0, 10)
+            
+            for person in cast_info['cast'][:5]:  # Show top 5
+                person_widget = self.create_cast_card(person)
+                cast_layout.addWidget(person_widget)
+            
+            cast_layout.addStretch()
+            layout.addWidget(cast_container)
+    
+    def create_cast_card(self, person):
+        """Create a cast member card"""
+        card = QFrame()
+        card.setFixedSize(100, 150)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+            }
+        """)
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(5, 5, 5, 5)
+        card_layout.setSpacing(5)
+        
+        # Photo placeholder (or actual photo if available)
+        photo_label = QLabel()
+        photo_label.setFixedSize(90, 90)
+        photo_label.setAlignment(Qt.AlignCenter)
+        photo_label.setStyleSheet("""
+            background-color: #2a2a2a;
+            border-radius: 45px;
+            font-size: 30px;
+        """)
+        
+        if person.get('profile_url'):
+            try:
+                response = requests.get(person['profile_url'], timeout=5)
+                if response.status_code == 200:
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(response.content)
+                    # Make circular
+                    photo_label.setPixmap(pixmap.scaled(90, 90, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            except:
+                photo_label.setText("👤")
+        else:
+            photo_label.setText("👤")
+        
+        card_layout.addWidget(photo_label, alignment=Qt.AlignCenter)
+        
+        # Name
+        name_label = QLabel(person.get('name', 'Unknown'))
+        name_label.setStyleSheet("color: white; font-size: 11px; font-weight: bold;")
+        name_label.setAlignment(Qt.AlignCenter)
+        name_label.setWordWrap(True)
+        card_layout.addWidget(name_label)
+        
+        # Character
+        if person.get('character'):
+            char_label = QLabel(person['character'])
+            char_label.setStyleSheet("color: #888; font-size: 10px;")
+            char_label.setAlignment(Qt.AlignCenter)
+            char_label.setWordWrap(True)
+            card_layout.addWidget(char_label)
+        
+        return card
+    
+    def _on_play(self):
+        """Handle play button click"""
+        self.play_clicked.emit(self.item_data)
+        self.close()
+    
+    def _on_delete(self):
+        """Handle delete button click"""
+        from PyQt5.QtWidgets import QMessageBox
+        
+        # Confirm deletion
+        item_type = "series" if 'seasons' in self.item_data else "movie"
+        title = self.item_data.get('title', 'Unknown')
+        
+        reply = QMessageBox.question(
+            self,
+            "Remove from Library",
+            f"Remove '{title}' from your MovieFlix library?\n\n"
+            f"Note: The video file(s) will remain on your computer,\n"
+            f"they will just be removed from MovieFlix.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            self.delete_clicked.emit(self.item_data)
+            self.close()

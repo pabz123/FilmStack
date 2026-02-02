@@ -41,6 +41,38 @@ VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
 EPISODE_PATTERN = re.compile(r"(S\d+E\d+)", re.IGNORECASE)
 
 
+def clean_title(title):
+    """
+    Clean up a title by removing common patterns and junk.
+    
+    Args:
+        title (str): The raw title string
+        
+    Returns:
+        str: Cleaned title
+    """
+    # Remove common quality indicators
+    title = re.sub(r'\b(1080p|720p|480p|2160p|4K|HD|BluRay|WEB-DL|WEBRip|HDRip)\b', '', title, flags=re.IGNORECASE)
+    
+    # Remove year in parentheses or brackets
+    title = re.sub(r'[\(\[]?\d{4}[\)\]]?', '', title)
+    
+    # Remove common release group patterns
+    title = re.sub(r'[\(\[].*?[\)\]]', '', title)
+    
+    # Remove file extensions
+    title = re.sub(r'\.(mp4|mkv|avi|mov|flv|wmv|webm)$', '', title, flags=re.IGNORECASE)
+    
+    # Replace dots, underscores, hyphens with spaces
+    title = title.replace('.', ' ').replace('_', ' ').replace('-', ' ')
+    
+    # Remove multiple spaces
+    title = re.sub(r'\s+', ' ', title)
+    
+    # Strip and title case
+    return title.strip().title()
+
+
 def scan_movies(movies_dir):
     """
     Scan directory for movie files and extract metadata.
@@ -206,5 +238,169 @@ def extract_episode_info(filename, series_name, season_number, folder_path):
         "series_title": series_name,
         "season_number": season_number,
         "episode_number": episode_number,
+        "path": os.path.join(folder_path, filename)
+    }
+
+
+def scan_entire_pc(progress_callback=None):
+    """
+    Scan entire PC for video files (movies and series).
+    
+    Scans all available drives and directories, excluding system folders.
+    
+    Args:
+        progress_callback (callable): Optional callback function(current_path, found_count)
+        
+    Returns:
+        dict: {'movies': [], 'series': []} with discovered content
+        
+    Example:
+        >>> results = scan_entire_pc(lambda path, count: print(f"Scanning {path}..."))
+        >>> print(f"Found {len(results['movies'])} movies")
+    """
+    import platform
+    import string
+    
+    # Folders to exclude from scanning
+    EXCLUDE_FOLDERS = {
+        'Windows', 'Program Files', 'Program Files (x86)', 
+        'ProgramData', '$Recycle.Bin', 'System Volume Information',
+        'AppData', 'node_modules', '.git', '.vscode', 'venv',
+        'Windows.old', 'Recovery', 'PerfLogs', 'Boot'
+    }
+    
+    movies = []
+    series_dict = {}  # Group episodes by series
+    total_found = 0
+    
+    # Get all available drives
+    if platform.system() == 'Windows':
+        drives = [f"{d}:\\" for d in string.ascii_uppercase if os.path.exists(f"{d}:\\")]
+    else:
+        drives = ['/home', '/media', '/mnt']  # Common media locations on Linux/Mac
+    
+    print(f"Scanning drives: {drives}")
+    
+    for drive in drives:
+        print(f"📁 Scanning drive: {drive}")
+        
+        for root, dirs, files in os.walk(drive):
+            # Skip excluded folders
+            dirs[:] = [d for d in dirs if d not in EXCLUDE_FOLDERS]
+            
+            # Progress callback
+            if progress_callback:
+                progress_callback(root, total_found)
+            
+            for file in files:
+                if file.lower().endswith(VIDEO_EXTENSIONS):
+                    full_path = os.path.join(root, file)
+                    
+                    # Determine if it's a series or movie
+                    if is_episode(file):
+                        # It's a series episode
+                        episode_data = parse_episode(file, root)
+                        series_title = episode_data['series_title']
+                        
+                        if series_title not in series_dict:
+                            series_dict[series_title] = []
+                        series_dict[series_title].append(episode_data)
+                    else:
+                        # It's a movie
+                        title = clean_title(os.path.splitext(file)[0])
+                        movies.append({
+                            'title': title,
+                            'path': full_path
+                        })
+                    
+                    total_found += 1
+    
+    # Convert series dict to list
+    series = list(series_dict.values())
+    
+    print(f"✓ Scan complete! Found {len(movies)} movies and {len(series)} series")
+    
+    return {
+        'movies': movies,
+        'series': series
+    }
+
+
+def is_episode(filename):
+    """
+    Check if a filename appears to be a TV episode.
+    
+    Args:
+        filename (str): The filename to check
+        
+    Returns:
+        bool: True if appears to be an episode, False otherwise
+    """
+    # Check for episode patterns
+    if EPISODE_PATTERN.search(filename):
+        return True
+    
+    # Check for common series indicators
+    episode_indicators = ['episode', 'ep', 'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 
+                         'e6', 'e7', 'e8', 'e9', 'season']
+    
+    filename_lower = filename.lower()
+    return any(indicator in filename_lower for indicator in episode_indicators)
+
+
+def parse_episode(filename, folder_path):
+    """
+    Parse episode information from a filename.
+    Extracts series title, season, and episode number.
+    
+    Args:
+        filename (str): The episode filename
+        folder_path (str): The folder containing the episode
+        
+    Returns:
+        dict: Episode information
+    """
+    # Try to extract season/episode from filename (e.g., "S01E05")
+    match = EPISODE_PATTERN.search(filename)
+    
+    if match:
+        # Extract from S##E## pattern
+        episode_code = match.group().upper()  # e.g., "S01E05"
+        try:
+            season_number = int(episode_code.split('E')[0][1:])  # Extract season
+            episode_number = int(episode_code.split('E')[1])  # Extract episode
+        except (IndexError, ValueError):
+            season_number = 1
+            episode_number = 1
+        
+        # Series title is everything before the season/episode code
+        series_title = clean_title(filename[:match.start()])
+    else:
+        # No S##E## pattern - try to extract from folder/filename
+        season_number = 1
+        
+        # Try to extract episode number
+        ep_match = re.search(r'(?:episode|ep|e)[._\s-]*(\d+)', filename, re.IGNORECASE)
+        if ep_match:
+            try:
+                episode_number = int(ep_match.group(1))
+            except ValueError:
+                episode_number = 1
+        else:
+            episode_number = 1
+        
+        # Use folder name or filename as series title
+        folder_name = os.path.basename(folder_path)
+        if 'season' in folder_name.lower() or 's0' in folder_name.lower():
+            # Parent folder might be series name
+            series_title = clean_title(os.path.basename(os.path.dirname(folder_path)))
+        else:
+            series_title = clean_title(filename)
+    
+    return {
+        "series_title": series_title,
+        "season_number": season_number,
+        "episode_number": episode_number,
+        "title": clean_title(os.path.splitext(filename)[0]),
         "path": os.path.join(folder_path, filename)
     }

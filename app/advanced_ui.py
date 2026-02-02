@@ -292,14 +292,15 @@ class NavigationBar(QFrame):
         layout.setContentsMargins(40, 0, 40, 0)
         layout.setSpacing(40)
         
-        # Logo
-        logo = QLabel("🎬 MOVIEFLIX")
+        # Logo - proper spacing and sizing
+        logo = QLabel("MOVIE FLIX")
         logo.setStyleSheet("""
             color: #e50914;
-            font-size: 28px;
+            font-size: 26px;
             font-weight: bold;
-            letter-spacing: 1px;
+            font-family: Arial, sans-serif;
         """)
+        logo.setMinimumWidth(150)
         layout.addWidget(logo)
         
         # Navigation buttons
@@ -352,6 +353,25 @@ class NavigationBar(QFrame):
             }
         """)
         layout.addWidget(self.search_box)
+        
+        # Settings button
+        self.settings_btn = QPushButton("⚙")
+        self.settings_btn.setFixedSize(40, 40)
+        self.settings_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+                border: none;
+                border-radius: 20px;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+        """)
+        self.settings_btn.setCursor(Qt.PointingHandCursor)
+        self.settings_btn.clicked.connect(lambda: self.parent_window.show_settings() if hasattr(self.parent_window, 'show_settings') else None)
+        layout.addWidget(self.settings_btn)
         
         # Store parent reference for menu
         self.parent_window = parent
@@ -419,7 +439,9 @@ class AdvancedMovieLibrary(QMainWindow):
         # Apply dark theme IMMEDIATELY to prevent white flash
         self.setStyleSheet("QMainWindow { background-color: #141414; }")
         
-        # Maximize window to fit screen properly
+        # Set reasonable window size and maximize
+        self.setMinimumSize(1024, 768)
+        self.resize(1280, 720)
         self.showMaximized()
         
         # Central widget
@@ -462,11 +484,22 @@ class AdvancedMovieLibrary(QMainWindow):
         self.previous_view = "home"
         self.previous_scroll_position = 0
         
+        # Track current filter for immediate card removal
+        self.current_filter = "all"  # "all", "movies", or "series"
+        
         # Background scanner
         self.scanner = None
         
         # TMDB metadata fetcher
         self.tmdb_fetcher = None
+        
+        # Auto-scanner for background PC scanning
+        from app.auto_scanner import AutoScanManager
+        self.auto_scanner = AutoScanManager(self)
+        
+        # External drive monitor for temporary cards
+        from app.external_drive_monitor import ExternalContentManager
+        self.external_manager = ExternalContentManager(self)
         
         # Show window immediately (don't wait for content)
         print("✓ Main window created")
@@ -474,6 +507,12 @@ class AdvancedMovieLibrary(QMainWindow):
         # Auto-load content AFTER window is shown (defer to avoid blocking window display)
         # This ensures the window appears instantly, then content loads in background
         QTimer.singleShot(500, self.auto_load_content)
+        
+        # Start background PC scan after content loads
+        QTimer.singleShot(2000, self.auto_scanner.start_background_scan)
+        
+        # Start external drive monitoring
+        QTimer.singleShot(3000, self.external_manager.start_monitoring)
     
     def _create_home_view(self):
         """Create home view with hero and categories"""
@@ -578,17 +617,21 @@ class AdvancedMovieLibrary(QMainWindow):
             btn.setChecked(False)
         
         if view_name == "home":
+            self.current_filter = "all"
             self.stacked_widget.setCurrentWidget(self.home_view)
             self.nav_bar.nav_buttons["Home"].setChecked(True)
         elif view_name == "movies":
+            self.current_filter = "movies"
             self.stacked_widget.setCurrentWidget(self.movies_view)
             self.nav_bar.nav_buttons["Movies"].setChecked(True)
             self.load_movies_view()
         elif view_name == "series":
+            self.current_filter = "series"
             self.stacked_widget.setCurrentWidget(self.series_view)
             self.nav_bar.nav_buttons["TV Shows"].setChecked(True)
             self.load_series_view()
         elif view_name == "new_popular":
+            self.current_filter = "all"
             # Show New & Popular (last 3 months)
             self.stacked_widget.setCurrentWidget(self.movies_view)
             self.nav_bar.nav_buttons["New & Popular"].setChecked(True)
@@ -1173,7 +1216,368 @@ class AdvancedMovieLibrary(QMainWindow):
         """Show movie information dialog"""
         dialog = MovieInfoDialog(movie, self)
         dialog.play_clicked.connect(self.play_movie)
+        dialog.delete_clicked.connect(self.delete_item)
         dialog.exec_()
+    
+    def delete_item(self, item_data):
+        """Delete a movie or series from the library"""
+        from PyQt5.QtWidgets import QMessageBox
+        import requests
+        
+        try:
+            item_id = item_data.get('id')
+            item_type = "series" if 'seasons' in item_data else "movie"
+            title = item_data.get('title', 'Unknown')
+            
+            # Delete from backend
+            if item_type == "movie":
+                response = requests.delete(f"{API_URL}/movies/{item_id}", timeout=5)
+            else:
+                response = requests.delete(f"{API_URL}/series/{item_id}", timeout=5)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                # Immediately remove card from UI
+                self._remove_card_from_ui(item_id, item_type)
+                
+                QMessageBox.information(
+                    self,
+                    "Removed",
+                    result.get('message', f"'{title}' has been removed from your library.\n\nThe video files remain on your computer.")
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Error",
+                    f"Failed to remove '{title}' from library."
+                )
+                
+        except Exception as e:
+            print(f"❌ Error deleting item: {e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"An error occurred while removing the item:\n\n{str(e)}"
+            )
+    
+    def _remove_card_from_ui(self, item_id, item_type):
+        """Remove a specific card from the UI immediately"""
+        try:
+            # Find and remove from all movie items
+            if item_type == "movie":
+                self.all_movies = [m for m in self.all_movies if m.get('id') != item_id]
+            else:
+                self.all_series = [s for s in self.all_series if s.get('id') != item_id]
+            
+            # Refresh the current view without reloading from API
+            self._refresh_current_view()
+            
+            print(f"✓ Removed {item_type} card (ID: {item_id}) from UI")
+            
+        except Exception as e:
+            print(f"❌ Error removing card from UI: {e}")
+    
+    def _refresh_current_view(self):
+        """Refresh the currently displayed content rows"""
+        try:
+            # Determine which layout to refresh based on current view
+            if self.current_filter == "movies":
+                layout = self.movies_layout
+            elif self.current_filter == "series":
+                layout = self.series_layout
+            else:
+                layout = self.home_layout
+            
+            # Clear existing rows (keep title and stretch)
+            for i in reversed(range(layout.count())):
+                item = layout.itemAt(i)
+                widget = item.widget() if item else None
+                
+                # Don't delete title labels or spacers
+                if widget and not isinstance(widget, QLabel):
+                    widget.deleteLater()
+            
+            # Re-display based on current filter
+            if self.current_filter == "movies":
+                self.display_filtered_movies()
+            elif self.current_filter == "series":
+                self.display_filtered_series()
+            else:
+                self.display_all_content()
+            
+        except Exception as e:
+            print(f"❌ Error refreshing view: {e}")
+    
+    def display_filtered_movies(self):
+        """Display only movies in the current view"""
+        if self.all_movies:
+            row = ContentRow("🎬 Movies", self.all_movies, self)
+            row.card_clicked.connect(self.show_movie_info)
+            # Insert before stretch
+            self.movies_layout.insertWidget(self.movies_layout.count() - 1, row)
+    
+    def display_filtered_series(self):
+        """Display only series in the current view"""
+        if self.all_series:
+            row = ContentRow("📺 TV Shows", self.all_series, self)
+            row.card_clicked.connect(self.show_movie_info)
+            # Insert before stretch
+            self.series_layout.insertWidget(self.series_layout.count() - 1, row)
+    
+    def display_all_content(self):
+        """Display all content (both movies and series)"""
+        # Show both movies and series rows
+        if self.all_movies:
+            row = ContentRow("🎬 Movies", self.all_movies, self)
+            row.card_clicked.connect(self.show_movie_info)
+            # Insert before stretch
+            self.home_layout.insertWidget(self.home_layout.count() - 1, row)
+        
+        if self.all_series:
+            row = ContentRow("📺 TV Shows", self.all_series, self)
+            row.card_clicked.connect(self.show_movie_info)
+            # Insert before stretch
+            self.home_layout.insertWidget(self.home_layout.count() - 1, row)
+    
+    def refresh_external_content(self):
+        """Refresh display to show/hide external drive content"""
+        print("🔄 Refreshing external content...")
+        
+        # Get external content
+        external = self.external_manager.get_all_external_content()
+        external_movies = external['movies']
+        external_series = external['series']
+        
+        if not external_movies and not external_series:
+            print("No external content to display")
+            return
+        
+        # Get library paths for duplicate detection
+        library_paths = set()
+        try:
+            movies_response = requests.get(f"{API_URL}/movies", timeout=5)
+            if movies_response.status_code == 200:
+                library_movies = movies_response.json()
+                library_paths.update(m.get('path') for m in library_movies if m.get('path'))
+            
+            series_response = requests.get(f"{API_URL}/series", timeout=5)
+            if series_response.status_code == 200:
+                library_series = series_response.json()
+                for s in library_series:
+                    for season in s.get('seasons', []):
+                        for ep in season.get('episodes', []):
+                            if ep.get('path'):
+                                library_paths.add(ep['path'])
+        except:
+            pass
+        
+        # Filter out duplicates
+        unique_external_movies = [
+            m for m in external_movies 
+            if not self.external_manager.is_duplicate(m['path'], library_paths)
+        ]
+        
+        print(f"📱 External content: {len(unique_external_movies)} unique movies")
+        
+        # Add external content section to home view
+        # This will be shown above regular library content
+        if unique_external_movies:
+            # Check if external row already exists
+            existing_row = None
+            for i in range(self.home_layout.count()):
+                widget = self.home_layout.itemAt(i).widget()
+                if hasattr(widget, 'objectName') and widget.objectName() == 'external_row':
+                    existing_row = widget
+                    break
+            
+            if existing_row:
+                # Remove old row
+                self.home_layout.removeWidget(existing_row)
+                existing_row.deleteLater()
+            
+            # Create new external content row
+            from app.advanced_widgets import CategoryRow
+            row = CategoryRow("📱 On External Drive (Temporary)")
+            row.setObjectName('external_row')
+            
+            for movie in unique_external_movies[:20]:
+                # Create virtual card data
+                card_data = {
+                    'id': None,  # Not in database
+                    'title': movie['title'],
+                    'path': movie['path'],
+                    'poster': None,
+                    'is_external': True,  # Flag as external
+                    'drive': movie.get('drive')
+                }
+                
+                from app.advanced_widgets import AdvancedMovieCard
+                card = AdvancedMovieCard(card_data)
+                card.play_clicked.connect(lambda m=card_data: self.play_external_movie(m))
+                row.add_card(card)
+            
+            # Insert after hero banner (position 1)
+            self.home_layout.insertWidget(1, row)
+            print(f"✓ Added external content row with {len(unique_external_movies)} items")
+    
+    def play_external_movie(self, movie_data):
+        """Play a movie from external drive"""
+        print(f"Playing external movie: {movie_data['title']}")
+        
+        # Check if file still exists
+        if not os.path.exists(movie_data['path']):
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.warning(
+                self,
+                "File Not Found",
+                f"The file is no longer accessible.\n\n"
+                f"The external drive may have been disconnected."
+            )
+            return
+        
+        # Play using existing player
+        self.play_movie(movie_data)
+    
+    def show_settings(self):
+        """Show settings dialog with scan options"""
+        from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QMessageBox
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Settings")
+        dialog.setModal(True)
+        dialog.setMinimumWidth(400)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1a1a1a;
+            }
+            QLabel {
+                color: white;
+                font-size: 14px;
+            }
+        """)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+        
+        # Title
+        title = QLabel("MovieFlix Settings")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white;")
+        layout.addWidget(title)
+        
+        # Library scan section
+        library_label = QLabel("Library Management")
+        library_label.setStyleSheet("font-size: 16px; font-weight: bold; color: white; margin-top: 10px;")
+        layout.addWidget(library_label)
+        
+        library_desc = QLabel("Scan your computer for movies and TV series")
+        library_desc.setStyleSheet("color: #999; font-size: 13px;")
+        layout.addWidget(library_desc)
+        
+        # Scan library button
+        scan_library_btn = QPushButton("📁 Rescan Library Folder")
+        scan_library_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #444;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 15px;
+                font-size: 14px;
+                font-weight: bold;
+                text-align: left;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+        """)
+        scan_library_btn.clicked.connect(lambda: self.start_scan('library'))
+        layout.addWidget(scan_library_btn)
+        
+        # Full PC scan button
+        scan_pc_btn = QPushButton("💻 Scan Entire Computer")
+        scan_pc_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e50914;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 15px;
+                font-size: 14px;
+                font-weight: bold;
+                text-align: left;
+            }
+            QPushButton:hover {
+                background-color: #f40612;
+            }
+        """)
+        scan_pc_btn.clicked.connect(lambda: self.start_scan('full_pc'))
+        layout.addWidget(scan_pc_btn)
+        
+        scan_note = QLabel("⚠️ Full PC scan may take several minutes")
+        scan_note.setStyleSheet("color: #e50914; font-size: 12px;")
+        layout.addWidget(scan_note)
+        
+        layout.addStretch()
+        
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #444;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 12px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+        """)
+        close_btn.clicked.connect(dialog.accept)
+        layout.addWidget(close_btn)
+        
+        dialog.exec_()
+    
+    def start_scan(self, scan_type):
+        """Start scanning process"""
+        from app.scan_progress_dialog import ScanProgressDialog
+        
+        dialog = ScanProgressDialog(scan_type, self)
+        dialog.scan_complete.connect(self.on_scan_complete)
+        dialog.start_scan()
+        dialog.exec_()
+    
+    def on_scan_complete(self, results):
+        """Handle scan completion"""
+        movies = results.get('movies', [])
+        series = results.get('series', [])
+        
+        if not movies and not series:
+            from PyQt5.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self,
+                "Scan Complete",
+                "No new content found."
+            )
+            return
+        
+        # Show import dialog
+        from app.database_import_dialog import DatabaseImportDialog
+        
+        dialog = DatabaseImportDialog(movies, series, API_URL, self)
+        dialog.import_complete.connect(self.on_import_complete)
+        dialog.start_import(fetch_metadata=True)  # Fetch metadata during import
+        dialog.exec_()
+    
+    def on_import_complete(self, results):
+        """Handle database import completion"""
+        # Reload all content to show newly added items
+        print("Import complete, reloading library...")
+        self.auto_load_content()
+
     
     def show_series_episodes(self, series):
         """Show episode selection dialog for series"""
@@ -1229,9 +1633,14 @@ class AdvancedMovieLibrary(QMainWindow):
             else:
                 self.previous_scroll_position = 0
             
+            # Set episode info in player
+            if self.video_player:
+                self.video_player.current_episode_info = episode
+                self.video_player.current_series_title = episode.get('series_title', 'TV Series')
+            
             # Set episode list in player if provided
             if series_episodes and self.video_player:
-                self.video_player.episode_list = series_episodes
+                self.video_player.current_episode_list = series_episodes
             
             # Switch to player view
             self.stacked_widget.setCurrentWidget(self.video_player)
@@ -1274,9 +1683,9 @@ class AdvancedMovieLibrary(QMainWindow):
                 trending = trending_response.json()
                 print(f"Got {len(trending)} trending items from TMDB")
                 
-                # Separate movies and TV shows
-                trending_movies = [t for t in trending if t.get('media_type') == 'movie']
-                trending_tv = [t for t in trending if t.get('media_type') == 'tv']
+                # Separate movies and TV shows with posters only
+                trending_movies = [t for t in trending if t.get('media_type') == 'movie' and t.get('poster_path')]
+                trending_tv = [t for t in trending if t.get('media_type') == 'tv' and t.get('poster_path')]
                 
                 # Add Trending Movies row
                 if trending_movies:
@@ -1322,22 +1731,26 @@ class AdvancedMovieLibrary(QMainWindow):
             if popular_response.status_code == 200:
                 popular = popular_response.json()
                 if popular and len(popular) > 0:
-                    row = CategoryRow(f"⭐ Popular on TMDB")
-                    for item in popular[:15]:
-                        movie_data = {
-                            'id': None,
-                            'title': item.get('title', item.get('name', 'Unknown')),
-                            'overview': item.get('overview', ''),
-                            'rating': item.get('vote_average'),
-                            'poster': f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
-                            'path': None,
-                            'tmdb_id': item.get('id'),
-                            'is_tmdb': True
-                        }
-                        card = AdvancedMovieCard(movie_data)
-                        card.info_clicked.connect(lambda m=movie_data: self.show_tmdb_info(m))
-                        row.add_card(card)
-                    self.movies_layout.insertWidget(self.movies_layout.count() - 1, row)
+                    # Filter to only show items with posters
+                    popular_with_posters = [p for p in popular if p.get('poster_path')]
+                    
+                    if popular_with_posters:
+                        row = CategoryRow(f"⭐ Popular on TMDB")
+                        for item in popular_with_posters[:15]:
+                            movie_data = {
+                                'id': None,
+                                'title': item.get('title', item.get('name', 'Unknown')),
+                                'overview': item.get('overview', ''),
+                                'rating': item.get('vote_average'),
+                                'poster': f"https://image.tmdb.org/t/p/w500{item.get('poster_path')}" if item.get('poster_path') else None,
+                                'path': None,
+                                'tmdb_id': item.get('id'),
+                                'is_tmdb': True
+                            }
+                            card = AdvancedMovieCard(movie_data)
+                            card.info_clicked.connect(lambda m=movie_data: self.show_tmdb_info(m))
+                            row.add_card(card)
+                        self.movies_layout.insertWidget(self.movies_layout.count() - 1, row)
             
             print("✓ New & Popular loaded from TMDB")
                     
