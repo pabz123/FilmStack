@@ -475,10 +475,8 @@ class AdvancedMovieLibrary(QMainWindow):
         self.stacked_widget.addWidget(self.movies_view)
         self.stacked_widget.addWidget(self.series_view)
         
-        # Embedded video player (Netflix-style) - Lazy initialization
-        # Only create player when actually needed to speed up startup
-        self.video_player = None
-        self._player_initialized = False
+        # Standalone player window (VLC-style)
+        self.player_window = None
         
         # Track previous view for returning after video playback
         self.previous_view = "home"
@@ -1125,40 +1123,18 @@ class AdvancedMovieLibrary(QMainWindow):
             return False
             return False
     
+    def on_player_closed(self):
+        """Handle player window closed"""
+        print("✓ Player window closed")
+        self.player_window = None
+    
     def return_from_player(self):
         """Return to the previous view after closing video player"""
-        try:
-            # Determine which view to return to
-            if self.previous_view == "home":
-                self.stacked_widget.setCurrentWidget(self.home_view)
-            elif self.previous_view == "movies":
-                self.stacked_widget.setCurrentWidget(self.movies_view)
-            elif self.previous_view == "series":
-                self.stacked_widget.setCurrentWidget(self.series_view)
-            else:
-                # Default to home
-                self.stacked_widget.setCurrentWidget(self.home_view)
-            
-            # Restore scroll position if applicable
-            if self.previous_scroll_position > 0:
-                view = self.stacked_widget.currentWidget()
-                if hasattr(view, 'verticalScrollBar'):
-                    view.verticalScrollBar().setValue(self.previous_scroll_position)
-            
-            print(f"✓ Returned to {self.previous_view} view")
-            
-        except Exception as e:
-            print(f"Error returning from player: {e}")
-            # Fallback to home
-            self.stacked_widget.setCurrentWidget(self.home_view)
+        # DEPRECATED - not used with standalone player window
+        pass
     
     def play_movie(self, movie):
-        """Play a movie using embedded VLC player"""
-        # Initialize player if not already done
-        if not self._ensure_player_initialized():
-            QMessageBox.warning(self, "Error", "Video player not available.\nPlease install python-vlc:\npip install python-vlc")
-            return
-        
+        """Play a movie using standalone player window"""
         try:
             # Validate movie path
             movie_path = movie.get("path")
@@ -1172,30 +1148,23 @@ class AdvancedMovieLibrary(QMainWindow):
             
             print(f"Playing movie: {movie.get('title')} from {movie_path}")
             
-            # Save current view state
-            current_widget = self.stacked_widget.currentWidget()
-            if current_widget == self.home_view:
-                self.previous_view = "home"
-            elif current_widget == self.movies_view:
-                self.previous_view = "movies"
-            elif current_widget == self.series_view:
-                self.previous_view = "series"
-            else:
-                self.previous_view = "home"
+            # Create standalone player window
+            from app.standalone_player import StandalonePlayerWindow
             
-            # Save scroll position
-            if hasattr(current_widget, 'verticalScrollBar'):
-                self.previous_scroll_position = current_widget.verticalScrollBar().value()
-            else:
-                self.previous_scroll_position = 0
-            
-            # Switch to player view
-            self.stacked_widget.setCurrentWidget(self.video_player)
-            self.video_player.show()
+            self.player_window = StandalonePlayerWindow(self)
+            self.player_window.closed.connect(self.on_player_closed)
             
             # Play the movie
             movie_id = movie.get('id')
-            self.video_player.play_media(movie_path, movie_id, "movie")
+            start_pos = movie.get('last_position', 0)
+            
+            success = self.player_window.play_media(movie_path, movie_id, "movie", start_pos)
+            
+            if not success:
+                QMessageBox.critical(self, "Playback Error", "Failed to start playback.\n\nPlease check the console for details.")
+                self.player_window.close()
+                self.player_window = None
+                return
             
             # Mark as watched
             try:

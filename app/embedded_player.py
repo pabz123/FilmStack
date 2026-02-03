@@ -146,6 +146,9 @@ class EmbeddedVideoPlayer(QWidget):
         self.current_episode_info = None  # Store current episode info for display
         self.current_series_title = None  # Store series title
         
+        # Set focus policy to accept keyboard input
+        self.setFocusPolicy(Qt.StrongFocus)
+        
         if not VLC_AVAILABLE:
             print("⚠ VLC not available - player will not function")
             self.setup_error_ui()
@@ -474,23 +477,30 @@ class EmbeddedVideoPlayer(QWidget):
         """Handle keyboard shortcuts"""
         if event.key() == Qt.Key_Space:
             self.play_pause()
+            event.accept()  # Stop event from propagating
         elif event.key() == Qt.Key_F or event.key() == Qt.Key_F11:
             self.toggle_fullscreen()
+            event.accept()
         elif event.key() == Qt.Key_Escape:
             if self.is_fullscreen:
                 self.toggle_fullscreen()
             else:
                 self.close_player()
+            event.accept()
         elif event.key() == Qt.Key_Up:
             self.volume_slider.setValue(min(100, self.volume_slider.value() + 5))
+            event.accept()
         elif event.key() == Qt.Key_Down:
             self.volume_slider.setValue(max(0, self.volume_slider.value() - 5))
+            event.accept()
         elif event.key() == Qt.Key_Left:
             if self.media_player:
                 self.media_player.set_time(max(0, self.media_player.get_time() - 10000))
+            event.accept()
         elif event.key() == Qt.Key_Right:
             if self.media_player:
                 self.media_player.set_time(self.media_player.get_time() + 10000)
+            event.accept()
         else:
             super().keyPressEvent(event)
     
@@ -689,6 +699,9 @@ class EmbeddedVideoPlayer(QWidget):
             
             # Auto-load subtitles if available
             QTimer.singleShot(1500, lambda: self.auto_load_subtitles(path))
+            
+            # Set focus to player widget so keyboard shortcuts work
+            QTimer.singleShot(500, lambda: self.setFocus())
             
             print(f"✅ Playback started successfully!")
             return True
