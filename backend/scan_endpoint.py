@@ -27,7 +27,7 @@ def get_db():
 
 @router.post("/scan")
 def scan_library(db: Session = Depends(get_db)):
-    """Scan library folders and add content to database"""
+    """Scan library folder and add content to database"""
     
     results = {
         "movies_added": 0,
@@ -36,14 +36,14 @@ def scan_library(db: Session = Depends(get_db)):
         "errors": []
     }
     
-    # Get library paths
+    # Get library path - scan the root library folder directly
     library_path = os.path.join(os.path.dirname(current_dir), "library")
-    movies_path = os.path.join(library_path, "mo")
-    series_path = os.path.join(library_path, "se")
     
     print(f"Scanning library at: {library_path}")
-    print(f"Movies path: {movies_path}")
-    print(f"Series path: {series_path}")
+    
+    # We'll scan the library folder itself for both movies and series
+    movies_path = library_path
+    series_path = library_path
     
     # Scan movies
     if os.path.exists(movies_path):

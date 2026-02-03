@@ -144,10 +144,9 @@ def scan_movies(movies_dir):
             if file.lower().endswith(VIDEO_EXTENSIONS):
                 full_path = os.path.join(root, file)
                 
-                # Check video duration - only include movies >= 1 hour
-                duration = get_video_duration(full_path)
-                if duration < MIN_MOVIE_DURATION:
-                    print(f"⏭ Skipping short video ({duration/60:.1f} min): {file}")
+                # Check if it's a series episode - if so, skip it
+                if is_episode(file):
+                    print(f"⏭ Skipping series episode: {file}")
                     continue
                 
                 title = os.path.splitext(file)[0]

@@ -506,8 +506,8 @@ class AdvancedMovieLibrary(QMainWindow):
         # This ensures the window appears instantly, then content loads in background
         QTimer.singleShot(500, self.auto_load_content)
         
-        # Start background PC scan after content loads
-        QTimer.singleShot(2000, self.auto_scanner.start_background_scan)
+        # DISABLED: Auto PC-wide scan on startup - now scan library folder only on demand
+        # QTimer.singleShot(2000, self.auto_scanner.start_background_scan)
         
         # Start external drive monitoring
         QTimer.singleShot(3000, self.external_manager.start_monitoring)
@@ -816,7 +816,7 @@ class AdvancedMovieLibrary(QMainWindow):
             print("Starting TMDB metadata fetch for scanned movies...")
             QTimer.singleShot(2000, self.start_tmdb_fetch)
         else:
-            self.show_scan_status("⚠ No content found. Add files to library/mo/ or library/se/")
+            self.show_scan_status("⚠ No content found. Add video files to library/ folder")
             self._show_empty_state()
     
     def on_scan_error(self, error_msg):
