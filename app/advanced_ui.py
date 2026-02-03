@@ -513,6 +513,11 @@ class AdvancedMovieLibrary(QMainWindow):
         
         # Start external drive monitoring
         QTimer.singleShot(3000, self.external_manager.start_monitoring)
+        
+        # Periodic cleanup of disconnected drives (every 10 seconds)
+        self.cleanup_timer = QTimer()
+        self.cleanup_timer.timeout.connect(self.cleanup_external_drives)
+        self.cleanup_timer.start(10000)  # 10 seconds
     
     def _create_home_view(self):
         """Create home view with hero and categories"""
@@ -1223,20 +1228,28 @@ class AdvancedMovieLibrary(QMainWindow):
         """Delete a movie or series from the library"""
         from PyQt5.QtWidgets import QMessageBox
         import requests
+        import traceback
         
         try:
             item_id = item_data.get('id')
             item_type = "series" if 'seasons' in item_data else "movie"
             title = item_data.get('title', 'Unknown')
             
+            print(f"🗑 Attempting to delete {item_type}: {title} (ID: {item_id})")
+            
             # Delete from backend
             if item_type == "movie":
-                response = requests.delete(f"{API_URL}/movies/{item_id}", timeout=5)
+                url = f"{API_URL}/movies/{item_id}"
             else:
-                response = requests.delete(f"{API_URL}/series/{item_id}", timeout=5)
+                url = f"{API_URL}/series/{item_id}"
+            
+            print(f"  → DELETE request to: {url}")
+            response = requests.delete(url, timeout=5)
+            print(f"  → Response: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
+                print(f"  ✓ Deleted successfully from backend")
                 
                 # Immediately remove card from UI
                 self._remove_card_from_ui(item_id, item_type)
@@ -1247,14 +1260,17 @@ class AdvancedMovieLibrary(QMainWindow):
                     result.get('message', f"'{title}' has been removed from your library.\n\nThe video files remain on your computer.")
                 )
             else:
+                print(f"  ❌ Delete failed: {response.status_code}")
+                print(f"  Response: {response.text}")
                 QMessageBox.warning(
                     self,
                     "Error",
-                    f"Failed to remove '{title}' from library."
+                    f"Failed to remove '{title}' from library.\n\nServer response: {response.status_code}"
                 )
                 
         except Exception as e:
             print(f"❌ Error deleting item: {e}")
+            traceback.print_exc()
             QMessageBox.critical(
                 self,
                 "Error",
@@ -1344,13 +1360,26 @@ class AdvancedMovieLibrary(QMainWindow):
         """Refresh display to show/hide external drive content"""
         print("🔄 Refreshing external content...")
         
+        # First, remove any existing external content row
+        existing_row = None
+        for i in range(self.home_layout.count()):
+            widget = self.home_layout.itemAt(i).widget()
+            if hasattr(widget, 'objectName') and widget.objectName() == 'external_row':
+                existing_row = widget
+                break
+        
+        if existing_row:
+            print("🗑 Removing old external content row")
+            self.home_layout.removeWidget(existing_row)
+            existing_row.deleteLater()
+        
         # Get external content
         external = self.external_manager.get_all_external_content()
         external_movies = external['movies']
         external_series = external['series']
         
         if not external_movies and not external_series:
-            print("No external content to display")
+            print("✓ No external content - row removed")
             return
         
         # Get library paths for duplicate detection
@@ -1420,6 +1449,14 @@ class AdvancedMovieLibrary(QMainWindow):
             # Insert after hero banner (position 1)
             self.home_layout.insertWidget(1, row)
             print(f"✓ Added external content row with {len(unique_external_movies)} items")
+    
+    def cleanup_external_drives(self):
+        """Periodic cleanup of disconnected external drives"""
+        try:
+            if hasattr(self, 'external_manager') and self.external_manager:
+                self.external_manager.cleanup_disconnected_drives()
+        except Exception as e:
+            print(f"⚠ Error during external drive cleanup: {e}")
     
     def play_external_movie(self, movie_data):
         """Play a movie from external drive"""

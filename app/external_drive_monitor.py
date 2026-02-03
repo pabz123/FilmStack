@@ -291,8 +291,36 @@ class ExternalContentManager:
         if hasattr(self.parent, 'refresh_external_content'):
             self.parent.refresh_external_content()
     
+    def cleanup_disconnected_drives(self):
+        """Remove content from drives that are no longer connected"""
+        print("🧹 Cleaning up disconnected drives...")
+        
+        # Get currently connected drives
+        current_drives = get_available_drives()
+        connected_external = set(current_drives['external'])
+        
+        # Find drives in our content that are no longer connected
+        stored_drives = set(self.external_content.keys())
+        disconnected = stored_drives - connected_external
+        
+        if disconnected:
+            for drive in disconnected:
+                print(f"❌ Removing content from disconnected drive: {drive}:")
+                del self.external_content[drive]
+            
+            # Refresh UI to remove cards
+            if hasattr(self.parent, 'refresh_external_content'):
+                self.parent.refresh_external_content()
+            
+            print(f"✓ Cleaned up {len(disconnected)} disconnected drive(s)")
+        else:
+            print("✓ No disconnected drives to clean up")
+    
     def get_all_external_content(self):
         """Get all external content across all drives"""
+        # First, cleanup any disconnected drives
+        self.cleanup_disconnected_drives()
+        
         all_movies = []
         all_series = []
         
