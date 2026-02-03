@@ -40,6 +40,39 @@ VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
 # Regular expression for episode pattern matching (S01E01, S1E1, etc.)
 EPISODE_PATTERN = re.compile(r"(S\d+E\d+)", re.IGNORECASE)
 
+# Minimum movie duration in seconds (1 hour = 3600 seconds)
+MIN_MOVIE_DURATION = 3600
+
+
+def get_video_duration(video_path):
+    """
+    Get the duration of a video file in seconds.
+    Uses file size estimation for speed.
+    
+    Args:
+        video_path (str): Path to the video file
+        
+    Returns:
+        float: Duration in seconds, or 0 if cannot be determined
+    """
+    try:
+        file_size = os.path.getsize(video_path)
+        
+        # Quick filter: If file is very small (< 200MB), likely not a full movie
+        if file_size < 200 * 1024 * 1024:  # 200 MB
+            return 0
+        
+        # Estimate duration based on file size
+        # Average bitrate for movies: ~2-3 Mbps = 250-375 KB/s
+        # Use conservative 3 Mbps estimate
+        estimated_duration = file_size / (375 * 1024)  # seconds
+        return estimated_duration
+    except Exception as e:
+        print(f"⚠ Could not check duration for {video_path}: {e}")
+        # If we can't check, assume it's valid to avoid false negatives
+        return MIN_MOVIE_DURATION
+
+
 
 def clean_title(title):
     """
@@ -110,6 +143,13 @@ def scan_movies(movies_dir):
         for file in files:
             if file.lower().endswith(VIDEO_EXTENSIONS):
                 full_path = os.path.join(root, file)
+                
+                # Check video duration - only include movies >= 1 hour
+                duration = get_video_duration(full_path)
+                if duration < MIN_MOVIE_DURATION:
+                    print(f"⏭ Skipping short video ({duration/60:.1f} min): {file}")
+                    continue
+                
                 title = os.path.splitext(file)[0]
                 
                 # Clean up title (remove year, quality tags, etc.)
@@ -306,12 +346,19 @@ def scan_entire_pc(progress_callback=None):
                             series_dict[series_title] = []
                         series_dict[series_title].append(episode_data)
                     else:
-                        # It's a movie
-                        title = clean_title(os.path.splitext(file)[0])
-                        movies.append({
-                            'title': title,
-                            'path': full_path
-                        })
+                        # It's a movie - check duration
+                        duration = get_video_duration(full_path)
+                        
+                        # Only include videos longer than 1 hour (3600 seconds)
+                        if duration >= MIN_MOVIE_DURATION:
+                            title = clean_title(os.path.splitext(file)[0])
+                            movies.append({
+                                'title': title,
+                                'path': full_path
+                            })
+                        else:
+                            # Skip short videos (trailers, clips, etc.)
+                            print(f"⏭ Skipping short video ({duration/60:.1f} min): {file}")
                     
                     total_found += 1
     
@@ -363,6 +410,18 @@ def parse_episode(filename, folder_path):
     # Try to extract season/episode from filename (e.g., "S01E05")
     match = EPISODE_PATTERN.search(filename)
     
+    # Determine series title from folder structure first (more reliable)
+    folder_name = os.path.basename(folder_path)
+    parent_folder = os.path.basename(os.path.dirname(folder_path))
+    
+    # Check if current folder is a season folder
+    if 'season' in folder_name.lower() or re.match(r'^s\d+$', folder_name.lower()):
+        # Parent folder is the series name
+        series_title = clean_title(parent_folder)
+    else:
+        # Current folder might be the series name
+        series_title = clean_title(folder_name)
+    
     if match:
         # Extract from S##E## pattern
         episode_code = match.group().upper()  # e.g., "S01E05"
@@ -372,12 +431,18 @@ def parse_episode(filename, folder_path):
         except (IndexError, ValueError):
             season_number = 1
             episode_number = 1
-        
-        # Series title is everything before the season/episode code
-        series_title = clean_title(filename[:match.start()])
     else:
         # No S##E## pattern - try to extract from folder/filename
-        season_number = 1
+        
+        # Try to extract season number from folder name
+        season_match = re.search(r'season[._\s-]*(\d+)', folder_name, re.IGNORECASE)
+        if season_match:
+            try:
+                season_number = int(season_match.group(1))
+            except ValueError:
+                season_number = 1
+        else:
+            season_number = 1
         
         # Try to extract episode number
         ep_match = re.search(r'(?:episode|ep|e)[._\s-]*(\d+)', filename, re.IGNORECASE)
@@ -388,14 +453,6 @@ def parse_episode(filename, folder_path):
                 episode_number = 1
         else:
             episode_number = 1
-        
-        # Use folder name or filename as series title
-        folder_name = os.path.basename(folder_path)
-        if 'season' in folder_name.lower() or 's0' in folder_name.lower():
-            # Parent folder might be series name
-            series_title = clean_title(os.path.basename(os.path.dirname(folder_path)))
-        else:
-            series_title = clean_title(filename)
     
     return {
         "series_title": series_title,
