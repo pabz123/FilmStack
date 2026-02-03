@@ -502,12 +502,12 @@ class AdvancedMovieLibrary(QMainWindow):
         # Show window immediately (don't wait for content)
         print("✓ Main window created")
         
-        # Auto-load content AFTER window is shown (defer to avoid blocking window display)
+        # Start auto-load content AFTER window is shown (defer to avoid blocking window display)
         # This ensures the window appears instantly, then content loads in background
         QTimer.singleShot(500, self.auto_load_content)
         
-        # DISABLED: Auto PC-wide scan on startup - now scan library folder only on demand
-        # QTimer.singleShot(2000, self.auto_scanner.start_background_scan)
+        # Ask user if they want to scan PC on startup
+        QTimer.singleShot(2000, self.auto_scanner.start_background_scan)
         
         # Start external drive monitoring
         QTimer.singleShot(3000, self.external_manager.start_monitoring)

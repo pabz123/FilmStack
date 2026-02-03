@@ -233,12 +233,29 @@ class ExternalContentManager:
         print("✓ Monitor started - checking every 3 seconds")
         print("=" * 50)
         
-        # Scan any external drives already connected
+        # Scan any external drives already connected (with permission)
         if drives['external']:
-            print(f"\n📁 Scanning {len(drives['external'])} existing external drive(s)...")
+            print(f"\n📁 Found {len(drives['external'])} existing external drive(s)")
             for drive in drives['external']:
-                print(f"  → Scanning {drive}:")
-                self.scan_drive(drive)
+                from PyQt5.QtWidgets import QMessageBox
+                
+                reply = QMessageBox.question(
+                    self.parent,
+                    "External Drive Found",
+                    f"External drive {drive}: was detected.\n\n"
+                    f"Do you want to scan it for movies and series?\n\n"
+                    f"• Files will be shown as temporary cards\n"
+                    f"• Not added to library database\n"
+                    f"• Cards disappear when drive is disconnected",
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.Yes
+                )
+                
+                if reply == QMessageBox.Yes:
+                    print(f"  → User approved scanning {drive}:")
+                    self.scan_drive(drive)
+                else:
+                    print(f"  → User declined scanning {drive}:")
         else:
             print("\n💡 No external drives detected yet")
             print("   Connect an external drive to see its content!")
@@ -257,11 +274,31 @@ class ExternalContentManager:
         self.scanners[drive_letter] = scanner
     
     def on_drive_added(self, drive_letter):
-        """Handle new drive connected"""
+        """Handle new drive connected - ask user for permission"""
+        from PyQt5.QtWidgets import QMessageBox
+        
         print(f"\n{'='*50}")
         print(f"✨ NEW DRIVE CONNECTED: {drive_letter}:")
         print(f"{'='*50}")
-        self.scan_drive(drive_letter)
+        
+        # Ask user for permission
+        reply = QMessageBox.question(
+            self.parent,
+            "External Drive Detected",
+            f"External drive {drive_letter}: has been connected.\n\n"
+            f"Do you want to scan it for movies and series?\n\n"
+            f"• Files will be shown as temporary cards\n"
+            f"• Not added to library database\n"
+            f"• Cards disappear when drive is disconnected",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.Yes:
+            print(f"User approved scanning {drive_letter}:")
+            self.scan_drive(drive_letter)
+        else:
+            print(f"User declined scanning {drive_letter}:")
     
     def on_drive_removed(self, drive_letter):
         """Handle drive disconnected"""

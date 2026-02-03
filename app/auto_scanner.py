@@ -117,12 +117,38 @@ class AutoScanManager:
     """
     
     def __init__(self, parent_window):
-        self.parent = parent_window
+        self.parent_window = parent_window
         self.scan_worker = None
         self.api_url = "http://localhost:8765"
     
     def start_background_scan(self):
-        """Start a background scan (called on app startup)"""
+        """Start background scan with user permission"""
+        from PyQt5.QtWidgets import QMessageBox
+        
+        # Ask user for permission first
+        reply = QMessageBox.question(
+            self.parent_window,
+            "Scan Entire PC?",
+            "Do you want to scan your entire PC for movies and series?\n\n"
+            "This will:\n"
+            "• Search all drives for video files\n"
+            "• Take several minutes depending on your PC\n"
+            "• Find content outside the library folder\n\n"
+            "Alternatively, you can add files to the library folder\n"
+            "and use 'Scan Library' for faster results.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        
+        if reply == QMessageBox.No:
+            print("User declined full PC scan")
+            return
+        
+        print("User approved PC scan - starting...")
+        self._start_scan_worker()
+    
+    def _start_scan_worker(self):
+        """Actually start the scan worker (internal method)"""
         # Delay scan by 3 seconds to let UI fully load
         QTimer.singleShot(3000, self._run_scan)
     
