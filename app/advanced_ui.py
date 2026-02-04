@@ -1163,17 +1163,28 @@ class AdvancedMovieLibrary(QMainWindow):
                 self.player_window.close()
                 self.player_window = None
             
+            # Get suggested next movie (same genre, high rated)
+            next_movie = self.get_next_movie_suggestion(movie)
+            
             # Create standalone player window
             from app.standalone_player import StandalonePlayerWindow
             
             self.player_window = StandalonePlayerWindow(self)
             self.player_window.closed.connect(self.on_player_closed)
+            self.player_window.play_next_requested.connect(self.play_movie)
             
             # Play the movie
             movie_id = movie.get('id')
             start_pos = movie.get('last_position', 0)
             
-            success = self.player_window.play_media(movie_path, movie_id, "movie", start_pos)
+            success = self.player_window.play_media(
+                movie_path, 
+                movie_id, 
+                "movie", 
+                start_pos,
+                media_data=movie,
+                next_media=next_movie
+            )
             
             if not success:
                 QMessageBox.critical(self, "Playback Error", "Failed to start playback.\n\nPlease check the console for details.")
@@ -1627,8 +1638,14 @@ class AdvancedMovieLibrary(QMainWindow):
             season_num = episode.get('season_number', '?')
             ep_num = episode.get('episode_number', '?')
             series_title = episode.get('series_title', 'TV Series')
+            series_id = episode.get('series_id')
             print(f"Playing episode: {series_title} - S{season_num}E{ep_num}")
             print(f"Path: {ep_path}")
+            
+            # Get next episode
+            next_episode = self.get_next_episode(series_id, season_num, ep_num)
+            if next_episode:
+                print(f"📺 Next episode queued: S{next_episode.get('season_number')}E{next_episode.get('episode_number')}")
             
             # Close existing player if any
             if self.player_window:
@@ -1641,12 +1658,20 @@ class AdvancedMovieLibrary(QMainWindow):
             
             self.player_window = StandalonePlayerWindow(self)
             self.player_window.closed.connect(self.on_player_closed)
+            self.player_window.play_next_requested.connect(lambda ep: self.play_episode(ep))
             
             # Play the episode
             episode_id = episode.get('id')
             start_pos = episode.get("last_position", 0)
             
-            success = self.player_window.play_media(ep_path, episode_id, "episode", start_pos)
+            success = self.player_window.play_media(
+                ep_path, 
+                episode_id, 
+                "episode", 
+                start_pos,
+                media_data=episode,
+                next_media=next_episode
+            )
             
             if not success:
                 QMessageBox.critical(self, "Playback Error", "Failed to start playback.\n\nPlease check the console for details.")
@@ -1665,6 +1690,67 @@ class AdvancedMovieLibrary(QMainWindow):
             import traceback
             traceback.print_exc()
             QMessageBox.warning(self, "Error", f"Failed to play episode:\n{str(e)}\n\nCheck console for details.")
+    
+    def get_next_episode(self, series_id, current_season, current_episode):
+        """Get the next episode in the series"""
+        try:
+            # Try same season, next episode first
+            response = requests.get(
+                f"{API_URL}/series/{series_id}/episodes",
+                params={'season': current_season, 'episode': int(current_episode) + 1},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                episodes = response.json()
+                if episodes and len(episodes) > 0:
+                    return episodes[0]
+            
+            # If not found, try next season episode 1
+            response = requests.get(
+                f"{API_URL}/series/{series_id}/episodes",
+                params={'season': int(current_season) + 1, 'episode': 1},
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                episodes = response.json()
+                if episodes and len(episodes) > 0:
+                    return episodes[0]
+            
+            return None
+            
+        except Exception as e:
+            print(f"⚠ Error getting next episode: {e}")
+            return None
+    
+    def get_next_movie_suggestion(self, current_movie):
+        """Get a suggested next movie (high-rated, unwatched)"""
+        try:
+            # Get all movies
+            response = requests.get(f"{API_URL}/movies", timeout=5)
+            if response.status_code != 200:
+                return None
+            
+            all_movies = response.json()
+            
+            # Filter: not watched, high rating, different from current
+            suggestions = [
+                m for m in all_movies 
+                if not m.get('watched', False)
+                and m.get('id') != current_movie.get('id')
+                and m.get('rating', 0) >= 7.0
+            ]
+            
+            # Sort by rating
+            suggestions.sort(key=lambda x: x.get('rating', 0), reverse=True)
+            
+            # Return top suggestion
+            return suggestions[0] if suggestions else None
+            
+        except Exception as e:
+            print(f"⚠ Error getting movie suggestion: {e}")
+            return None
     
     def load_new_popular(self):
         """Load New & Popular - TMDB trending movies and series you DON'T have"""

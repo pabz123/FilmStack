@@ -34,6 +34,7 @@ class StandalonePlayerWindow(QMainWindow):
     """Standalone video player window"""
     
     closed = pyqtSignal()  # Signal when window is closed
+    play_next_requested = pyqtSignal(object)  # Signal to request next content
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,8 +44,16 @@ class StandalonePlayerWindow(QMainWindow):
         self.is_fullscreen = False
         self.current_movie_id = None
         self.current_type = None
+        self.current_media_data = None  # Store current movie/episode data
+        self.next_media_data = None  # Store next episode/movie data
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_ui)
+        
+        # Auto-play next
+        self.autoplay_overlay = None
+        self.autoplay_timer = QTimer()
+        self.autoplay_timer.timeout.connect(self.autoplay_countdown)
+        self.autoplay_countdown_value = 10
         
         # Window setup
         self.setWindowTitle("MovieFlix Player")
@@ -185,8 +194,17 @@ class StandalonePlayerWindow(QMainWindow):
         
         self.controls_widget = controls
     
-    def play_media(self, path, movie_id=None, media_type="movie", start_position=0):
-        """Play a media file"""
+    def play_media(self, path, movie_id=None, media_type="movie", start_position=0, media_data=None, next_media=None):
+        """Play a media file
+        
+        Args:
+            path: Path to video file
+            movie_id: Database ID
+            media_type: "movie" or "episode"
+            start_position: Start position in seconds
+            media_data: Full media data dict (for auto-next)
+            next_media: Next episode/movie data (for auto-next)
+        """
         if not self.media_player:
             return False
         
@@ -197,8 +215,12 @@ class StandalonePlayerWindow(QMainWindow):
         try:
             self.current_movie_id = movie_id
             self.current_type = media_type
+            self.current_media_data = media_data
+            self.next_media_data = next_media
             
             print(f"▶ Loading: {path}")
+            if next_media:
+                print(f"📺 Next queued: {next_media.get('title', 'Unknown')}")
             
             # Create media
             media = self.instance.media_new(path)
@@ -302,6 +324,14 @@ class StandalonePlayerWindow(QMainWindow):
             len_min = int(length / 60000)
             len_sec = int((length % 60000) / 1000)
             self.time_label.setText(f"{pos_min:02d}:{pos_sec:02d} / {len_min:02d}:{len_sec:02d}")
+            
+            # Check if video ended (within last 2 seconds)
+            if length > 0 and position > 0:
+                time_remaining = (length - position) / 1000  # seconds
+                if time_remaining <= 2 and time_remaining > 0 and not hasattr(self, '_end_triggered'):
+                    self._end_triggered = True
+                    print("🎬 Video ending - triggering auto-next")
+                    QTimer.singleShot(500, self.on_video_ended)
     
     def keyPressEvent(self, event):
         """Handle keyboard shortcuts"""
@@ -331,8 +361,15 @@ class StandalonePlayerWindow(QMainWindow):
         """Handle window close with proper cleanup"""
         print("🔄 Cleaning up player resources...")
         
-        # Stop timer first
+        # Stop timers
         self.timer.stop()
+        self.autoplay_timer.stop()
+        
+        # Hide overlay if exists
+        if self.autoplay_overlay:
+            self.autoplay_overlay.hide()
+            self.autoplay_overlay.deleteLater()
+            self.autoplay_overlay = None
         
         # Stop and release media player
         if self.media_player:
@@ -351,6 +388,163 @@ class StandalonePlayerWindow(QMainWindow):
         print("✓ Player resources cleaned up")
         self.closed.emit()
         event.accept()
+    
+    def on_video_ended(self):
+        """Handle video end - show auto-play overlay"""
+        print("📺 Video ended")
+        
+        if self.next_media_data:
+            print(f"✓ Next content available: {self.next_media_data.get('title')}")
+            self.show_autoplay_overlay()
+        else:
+            print("ℹ No next content - closing in 3 seconds")
+            QTimer.singleShot(3000, self.close)
+    
+    def show_autoplay_overlay(self):
+        """Show auto-play next overlay with countdown"""
+        if not self.next_media_data:
+            return
+        
+        # Create overlay widget
+        self.autoplay_overlay = QWidget(self.centralWidget())
+        self.autoplay_overlay.setStyleSheet("""
+            QWidget {
+                background-color: rgba(0, 0, 0, 0.85);
+            }
+        """)
+        self.autoplay_overlay.setGeometry(self.centralWidget().rect())
+        
+        layout = QVBoxLayout(self.autoplay_overlay)
+        layout.setAlignment(Qt.AlignCenter)
+        
+        # Title
+        if self.current_type == "episode":
+            title_text = f"Next Episode"
+        else:
+            title_text = "Up Next"
+        
+        title = QLabel(title_text)
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white; margin-bottom: 20px;")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+        
+        # Next content title
+        next_title = self.next_media_data.get('title', 'Unknown')
+        if self.current_type == "episode":
+            season = self.next_media_data.get('season_number', '?')
+            episode = self.next_media_data.get('episode_number', '?')
+            next_title = f"S{season}E{episode}: {next_title}"
+        
+        content_label = QLabel(next_title)
+        content_label.setStyleSheet("font-size: 18px; color: white; margin-bottom: 30px;")
+        content_label.setAlignment(Qt.AlignCenter)
+        content_label.setWordWrap(True)
+        layout.addWidget(content_label)
+        
+        # Countdown label
+        self.countdown_label = QLabel(f"Playing in {self.autoplay_countdown_value} seconds...")
+        self.countdown_label.setStyleSheet("font-size: 16px; color: #aaa; margin-bottom: 20px;")
+        self.countdown_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.countdown_label)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(20)
+        
+        # Play now button
+        play_now_btn = QPushButton("▶ Play Now")
+        play_now_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e50914;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 5px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #f40612;
+            }
+        """)
+        play_now_btn.clicked.connect(self.play_next_now)
+        play_now_btn.setCursor(Qt.PointingHandCursor)
+        button_layout.addWidget(play_now_btn)
+        
+        # Cancel button
+        cancel_btn = QPushButton("✕ Cancel")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #444;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 5px;
+                font-size: 16px;
+            }
+            QPushButton:hover {
+                background-color: #555;
+            }
+        """)
+        cancel_btn.clicked.connect(self.cancel_autoplay)
+        cancel_btn.setCursor(Qt.PointingHandCursor)
+        button_layout.addWidget(cancel_btn)
+        
+        layout.addLayout(button_layout)
+        
+        # Show overlay
+        self.autoplay_overlay.show()
+        self.autoplay_overlay.raise_()
+        
+        # Start countdown
+        self.autoplay_countdown_value = 10
+        self.autoplay_timer.start(1000)  # 1 second interval
+    
+    def autoplay_countdown(self):
+        """Update countdown and auto-play when reaches 0"""
+        self.autoplay_countdown_value -= 1
+        
+        if self.autoplay_countdown_value > 0:
+            self.countdown_label.setText(f"Playing in {self.autoplay_countdown_value} seconds...")
+        else:
+            # Time's up - play next
+            self.autoplay_timer.stop()
+            self.play_next_now()
+    
+    def play_next_now(self):
+        """Play next content immediately"""
+        print("▶ Playing next content now")
+        
+        # Hide overlay
+        if self.autoplay_overlay:
+            self.autoplay_overlay.hide()
+            self.autoplay_overlay.deleteLater()
+            self.autoplay_overlay = None
+        
+        # Stop timer
+        self.autoplay_timer.stop()
+        
+        # Emit signal to play next
+        if self.next_media_data:
+            self.play_next_requested.emit(self.next_media_data)
+            # Close this player - parent will open new one
+            self.close()
+    
+    def cancel_autoplay(self):
+        """Cancel auto-play and close player"""
+        print("✕ Auto-play cancelled")
+        
+        # Stop timer
+        self.autoplay_timer.stop()
+        
+        # Hide overlay
+        if self.autoplay_overlay:
+            self.autoplay_overlay.hide()
+            self.autoplay_overlay.deleteLater()
+            self.autoplay_overlay = None
+        
+        # Close player
+        self.close()
     
     def stop(self):
         """Stop playback"""
