@@ -1592,21 +1592,13 @@ class AdvancedMovieLibrary(QMainWindow):
         dialog.exec_()
     
     def play_episode(self, episode, series_episodes=None):
-        """Play a series episode using embedded VLC player
+        """Play a series episode using standalone player window
         
         Args:
             episode: Episode dict with path, id, etc.
             series_episodes: Optional list of all episodes for series playback
         """
-        # Initialize player if not already done
-        if not self._ensure_player_initialized():
-            QMessageBox.warning(self, "Error", "Video player not available.\nPlease install python-vlc:\npip install python-vlc")
-            return
-        
         try:
-            # Debug: print episode data
-            print(f"DEBUG: Episode data: {episode}")
-            
             # Validate episode path
             ep_path = episode.get("path")
             if not ep_path:
@@ -1619,47 +1611,34 @@ class AdvancedMovieLibrary(QMainWindow):
             
             season_num = episode.get('season_number', '?')
             ep_num = episode.get('episode_number', '?')
-            print(f"Playing episode: S{season_num}E{ep_num}")
+            series_title = episode.get('series_title', 'TV Series')
+            print(f"Playing episode: {series_title} - S{season_num}E{ep_num}")
             print(f"Path: {ep_path}")
             
-            # Save current view state
-            current_widget = self.stacked_widget.currentWidget()
-            if current_widget == self.home_view:
-                self.previous_view = "home"
-            elif current_widget == self.movies_view:
-                self.previous_view = "movies"
-            elif current_widget == self.series_view:
-                self.previous_view = "series"
-            else:
-                self.previous_view = "series"  # Default to series for episodes
+            # Create standalone player window
+            from app.standalone_player import StandalonePlayerWindow
             
-            # Save scroll position
-            if hasattr(current_widget, 'verticalScrollBar'):
-                self.previous_scroll_position = current_widget.verticalScrollBar().value()
-            else:
-                self.previous_scroll_position = 0
-            
-            # Set episode info in player
-            if self.video_player:
-                self.video_player.current_episode_info = episode
-                self.video_player.current_series_title = episode.get('series_title', 'TV Series')
-            
-            # Set episode list in player if provided
-            if series_episodes and self.video_player:
-                self.video_player.current_episode_list = series_episodes
-            
-            # Switch to player view
-            self.stacked_widget.setCurrentWidget(self.video_player)
-            self.video_player.show()
+            self.player_window = StandalonePlayerWindow(self)
+            self.player_window.closed.connect(self.on_player_closed)
             
             # Play the episode
             episode_id = episode.get('id')
             start_pos = episode.get("last_position", 0)
-            success = self.video_player.play_media(ep_path, episode_id, "episode", start_pos)
+            
+            success = self.player_window.play_media(ep_path, episode_id, "episode", start_pos)
             
             if not success:
-                print("⚠️ play_media returned False - playback may have failed")
+                QMessageBox.critical(self, "Playback Error", "Failed to start playback.\n\nPlease check the console for details.")
+                self.player_window.close()
+                self.player_window = None
+                return
             
+            # Mark as watched
+            try:
+                requests.post(f"{API_URL}/episodes/{episode['id']}/watch", timeout=5)
+            except:
+                pass  # Don't fail playback if watch marking fails
+                
         except Exception as e:
             print(f"Error playing episode: {e}")
             import traceback
