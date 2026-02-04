@@ -328,10 +328,27 @@ class StandalonePlayerWindow(QMainWindow):
             super().keyPressEvent(event)
     
     def closeEvent(self, event):
-        """Handle window close"""
+        """Handle window close with proper cleanup"""
+        print("🔄 Cleaning up player resources...")
+        
+        # Stop timer first
+        self.timer.stop()
+        
+        # Stop and release media player
         if self.media_player:
             self.media_player.stop()
-        self.timer.stop()
+            # Release media
+            self.media_player.set_media(None)
+            # Release media player
+            self.media_player.release()
+            self.media_player = None
+        
+        # Release VLC instance
+        if hasattr(self, 'instance') and self.instance:
+            self.instance.release()
+            self.instance = None
+        
+        print("✓ Player resources cleaned up")
         self.closed.emit()
         event.accept()
     

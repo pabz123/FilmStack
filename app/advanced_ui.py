@@ -1124,9 +1124,18 @@ class AdvancedMovieLibrary(QMainWindow):
             return False
     
     def on_player_closed(self):
-        """Handle player window closed"""
-        print("✓ Player window closed")
-        self.player_window = None
+        """Handle player window closed - cleanup resources"""
+        print("✓ Player window closed - cleaning up reference")
+        
+        # Delete the player window object to free memory
+        if self.player_window:
+            try:
+                self.player_window.deleteLater()
+            except:
+                pass
+            self.player_window = None
+        
+        print("✓ Player reference cleared")
     
     def return_from_player(self):
         """Return to the previous view after closing video player"""
@@ -1147,6 +1156,12 @@ class AdvancedMovieLibrary(QMainWindow):
                 return
             
             print(f"Playing movie: {movie.get('title')} from {movie_path}")
+            
+            # Close existing player if any
+            if self.player_window:
+                print("⚠ Closing existing player window...")
+                self.player_window.close()
+                self.player_window = None
             
             # Create standalone player window
             from app.standalone_player import StandalonePlayerWindow
@@ -1614,6 +1629,12 @@ class AdvancedMovieLibrary(QMainWindow):
             series_title = episode.get('series_title', 'TV Series')
             print(f"Playing episode: {series_title} - S{season_num}E{ep_num}")
             print(f"Path: {ep_path}")
+            
+            # Close existing player if any
+            if self.player_window:
+                print("⚠ Closing existing player window...")
+                self.player_window.close()
+                self.player_window = None
             
             # Create standalone player window
             from app.standalone_player import StandalonePlayerWindow
