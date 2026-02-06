@@ -1798,9 +1798,9 @@ class AdvancedMovieLibrary(QMainWindow):
                 trending = trending_response.json()
                 print(f"Got {len(trending)} trending items from TMDB")
                 
-                # Separate movies and TV shows with posters only
-                trending_movies = [t for t in trending if t.get('media_type') == 'movie' and t.get('poster_path')]
-                trending_tv = [t for t in trending if t.get('media_type') == 'tv' and t.get('poster_path')]
+                # Separate movies and TV shows (show all, even without posters)
+                trending_movies = [t for t in trending if t.get('media_type') == 'movie']
+                trending_tv = [t for t in trending if t.get('media_type') == 'tv']
                 
                 # Add Trending Movies row
                 if trending_movies:
@@ -1846,12 +1846,11 @@ class AdvancedMovieLibrary(QMainWindow):
             if popular_response.status_code == 200:
                 popular = popular_response.json()
                 if popular and len(popular) > 0:
-                    # Filter to only show items with posters
-                    popular_with_posters = [p for p in popular if p.get('poster_path')]
+                    # Show all popular items (even without posters)
                     
-                    if popular_with_posters:
+                    if popular:
                         row = CategoryRow(f"⭐ Popular on TMDB")
-                        for item in popular_with_posters[:15]:
+                        for item in popular[:15]:
                             movie_data = {
                                 'id': None,
                                 'title': item.get('title', item.get('name', 'Unknown')),
