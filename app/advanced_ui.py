@@ -491,6 +491,10 @@ class AdvancedMovieLibrary(QMainWindow):
         # TMDB metadata fetcher
         self.tmdb_fetcher = None
         
+        # Auto poster loader
+        from app.auto_poster_loader import AutoPosterManager
+        self.poster_manager = AutoPosterManager(self)
+        
         # Auto-scanner for background PC scanning
         from app.auto_scanner import AutoScanManager
         self.auto_scanner = AutoScanManager(self)
@@ -511,6 +515,9 @@ class AdvancedMovieLibrary(QMainWindow):
         
         # Start external drive monitoring
         QTimer.singleShot(3000, self.external_manager.start_monitoring)
+        
+        # Start auto poster loader (5 seconds delay)
+        QTimer.singleShot(5000, lambda: self.poster_manager.start_auto_loading(delay_seconds=5))
         
         # Periodic cleanup of disconnected drives (every 10 seconds)
         self.cleanup_timer = QTimer()
@@ -843,6 +850,22 @@ class AdvancedMovieLibrary(QMainWindow):
         
         # Auto-hide after 5 seconds
         QTimer.singleShot(5000, self.status_label.hide)
+    
+    def show_status_message(self, message):
+        """Show status message in navigation bar (for poster loader)"""
+        self.show_scan_status(message)
+    
+    def refresh_content(self):
+        """Refresh content display after poster updates"""
+        print("🔄 Refreshing content after poster update...")
+        # Reload current view
+        current_widget = self.stacked_widget.currentWidget()
+        if current_widget == self.home_view:
+            self.auto_load_content()
+        elif current_widget == self.movies_view:
+            self.load_movies()
+        elif current_widget == self.series_view:
+            self.load_series()
     
     def silent_scan(self):
         """DEPRECATED - use start_background_scan() instead"""
