@@ -331,20 +331,35 @@ class StandalonePlayerWindow(QMainWindow):
             len_sec = int((length % 60000) / 1000)
             self.time_label.setText(f"{pos_min:02d}:{pos_sec:02d} / {len_min:02d}:{len_sec:02d}")
             
-            # Check if we're in the credits zone (last 5% of video OR last 3 minutes, whichever is shorter)
+            # Smart credits detection based on video length
             if length > 0 and position > 0 and self.next_media_data:
                 # Calculate when to show "Next" button
-                # For episodes: last 5% or last 3 minutes
-                # For movies: last 5% or last 5 minutes
+                # Strategy: Detect credits earlier for better user experience
+                
+                length_minutes = length / 60000  # Convert to minutes
+                
                 if self.current_type == "episode":
-                    credits_threshold = min(length * 0.95, length - 180000)  # 95% or last 3 min
+                    # For episodes: trigger earlier to catch all credit types
+                    if length_minutes <= 25:  # Short episodes (20-25 min)
+                        # Credits often start 2-3 minutes before end
+                        credits_threshold = length - 150000  # Last 2.5 minutes
+                    elif length_minutes <= 50:  # Standard episodes (30-50 min)
+                        # Credits usually 3-4 minutes before end
+                        credits_threshold = length - 210000  # Last 3.5 minutes
+                    else:  # Long episodes (>50 min)
+                        # Longer episodes have longer credits
+                        credits_threshold = max(length * 0.90, length - 300000)  # 90% or last 5 min
                 else:
-                    credits_threshold = min(length * 0.95, length - 300000)  # 95% or last 5 min
+                    # For movies: credits vary by length
+                    if length_minutes <= 100:  # Short movies (<1h40m)
+                        credits_threshold = length - 300000  # Last 5 minutes
+                    else:  # Long movies (>1h40m)
+                        credits_threshold = max(length * 0.92, length - 420000)  # 92% or last 7 min
                 
                 # Trigger when entering credits zone
                 if position >= credits_threshold and not hasattr(self, '_credits_triggered'):
                     self._credits_triggered = True
-                    print(f"🎬 Credits detected at {pos_min:02d}:{pos_sec:02d} - showing auto-next")
+                    print(f"🎬 Credits detected at {pos_min:02d}:{pos_sec:02d} (length: {len_min}:{len_sec:02d}) - showing auto-next")
                     QTimer.singleShot(500, self.on_video_ended)
             
             # Fallback: If no next content, close when video actually ends (last 2 seconds)
