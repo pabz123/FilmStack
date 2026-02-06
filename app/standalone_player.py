@@ -218,6 +218,12 @@ class StandalonePlayerWindow(QMainWindow):
             self.current_media_data = media_data
             self.next_media_data = next_media
             
+            # Reset trigger flags for new media
+            if hasattr(self, '_credits_triggered'):
+                delattr(self, '_credits_triggered')
+            if hasattr(self, '_end_triggered'):
+                delattr(self, '_end_triggered')
+            
             print(f"▶ Loading: {path}")
             if next_media:
                 print(f"📺 Next queued: {next_media.get('title', 'Unknown')}")
@@ -325,13 +331,29 @@ class StandalonePlayerWindow(QMainWindow):
             len_sec = int((length % 60000) / 1000)
             self.time_label.setText(f"{pos_min:02d}:{pos_sec:02d} / {len_min:02d}:{len_sec:02d}")
             
-            # Check if video ended (within last 2 seconds)
-            if length > 0 and position > 0:
+            # Check if we're in the credits zone (last 5% of video OR last 3 minutes, whichever is shorter)
+            if length > 0 and position > 0 and self.next_media_data:
+                # Calculate when to show "Next" button
+                # For episodes: last 5% or last 3 minutes
+                # For movies: last 5% or last 5 minutes
+                if self.current_type == "episode":
+                    credits_threshold = min(length * 0.95, length - 180000)  # 95% or last 3 min
+                else:
+                    credits_threshold = min(length * 0.95, length - 300000)  # 95% or last 5 min
+                
+                # Trigger when entering credits zone
+                if position >= credits_threshold and not hasattr(self, '_credits_triggered'):
+                    self._credits_triggered = True
+                    print(f"🎬 Credits detected at {pos_min:02d}:{pos_sec:02d} - showing auto-next")
+                    QTimer.singleShot(500, self.on_video_ended)
+            
+            # Fallback: If no next content, close when video actually ends (last 2 seconds)
+            if not self.next_media_data and length > 0 and position > 0:
                 time_remaining = (length - position) / 1000  # seconds
                 if time_remaining <= 2 and time_remaining > 0 and not hasattr(self, '_end_triggered'):
                     self._end_triggered = True
-                    print("🎬 Video ending - triggering auto-next")
-                    QTimer.singleShot(500, self.on_video_ended)
+                    print("🎬 Video ended - closing player")
+                    QTimer.singleShot(3000, self.close)
     
     def keyPressEvent(self, event):
         """Handle keyboard shortcuts"""
@@ -390,42 +412,55 @@ class StandalonePlayerWindow(QMainWindow):
         event.accept()
     
     def on_video_ended(self):
-        """Handle video end - show auto-play overlay"""
-        print("📺 Video ended")
+        """Handle credits/end - show auto-play overlay"""
+        print("📺 Credits/End detected")
         
         if self.next_media_data:
             print(f"✓ Next content available: {self.next_media_data.get('title')}")
             self.show_autoplay_overlay()
         else:
-            print("ℹ No next content - closing in 3 seconds")
-            QTimer.singleShot(3000, self.close)
+            print("ℹ No next content - will close when video ends")
+            # Don't close immediately - let video finish naturally
     
     def show_autoplay_overlay(self):
-        """Show auto-play next overlay with countdown"""
+        """Show auto-play next overlay with countdown (Netflix-style bottom-right)"""
         if not self.next_media_data:
             return
         
-        # Create overlay widget
+        # Create overlay widget positioned in bottom-right corner
         self.autoplay_overlay = QWidget(self.centralWidget())
         self.autoplay_overlay.setStyleSheet("""
             QWidget {
-                background-color: rgba(0, 0, 0, 0.85);
+                background-color: rgba(20, 20, 20, 0.95);
+                border: 2px solid #e50914;
+                border-radius: 8px;
             }
         """)
-        self.autoplay_overlay.setGeometry(self.centralWidget().rect())
+        
+        # Position in bottom-right corner
+        overlay_width = 400
+        overlay_height = 220
+        margin = 20
+        parent_width = self.centralWidget().width()
+        parent_height = self.centralWidget().height()
+        
+        x = parent_width - overlay_width - margin
+        y = parent_height - overlay_height - margin - 100  # Account for controls
+        
+        self.autoplay_overlay.setGeometry(x, y, overlay_width, overlay_height)
         
         layout = QVBoxLayout(self.autoplay_overlay)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
         
         # Title
         if self.current_type == "episode":
-            title_text = f"Next Episode"
+            title_text = "Next Episode"
         else:
             title_text = "Up Next"
         
         title = QLabel(title_text)
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: white; margin-bottom: 20px;")
-        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
         layout.addWidget(title)
         
         # Next content title
@@ -433,23 +468,25 @@ class StandalonePlayerWindow(QMainWindow):
         if self.current_type == "episode":
             season = self.next_media_data.get('season_number', '?')
             episode = self.next_media_data.get('episode_number', '?')
-            next_title = f"S{season}E{episode}: {next_title}"
+            series_title = self.next_media_data.get('series_title', '')
+            next_title = f"S{season}E{episode}"
+            if series_title:
+                next_title += f": {series_title}"
         
         content_label = QLabel(next_title)
-        content_label.setStyleSheet("font-size: 18px; color: white; margin-bottom: 30px;")
-        content_label.setAlignment(Qt.AlignCenter)
+        content_label.setStyleSheet("font-size: 14px; color: #ccc;")
         content_label.setWordWrap(True)
+        content_label.setMaximumWidth(360)
         layout.addWidget(content_label)
         
         # Countdown label
-        self.countdown_label = QLabel(f"Playing in {self.autoplay_countdown_value} seconds...")
-        self.countdown_label.setStyleSheet("font-size: 16px; color: #aaa; margin-bottom: 20px;")
-        self.countdown_label.setAlignment(Qt.AlignCenter)
+        self.countdown_label = QLabel(f"Playing in {self.autoplay_countdown_value}s...")
+        self.countdown_label.setStyleSheet("font-size: 13px; color: #999; margin-top: 10px;")
         layout.addWidget(self.countdown_label)
         
         # Buttons
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(20)
+        button_layout.setSpacing(10)
         
         # Play now button
         play_now_btn = QPushButton("▶ Play Now")
@@ -458,9 +495,9 @@ class StandalonePlayerWindow(QMainWindow):
                 background-color: #e50914;
                 color: white;
                 border: none;
-                padding: 15px 30px;
-                border-radius: 5px;
-                font-size: 16px;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-size: 13px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -475,15 +512,15 @@ class StandalonePlayerWindow(QMainWindow):
         cancel_btn = QPushButton("✕ Cancel")
         cancel_btn.setStyleSheet("""
             QPushButton {
-                background-color: #444;
+                background-color: #333;
                 color: white;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 5px;
-                font-size: 16px;
+                border: 1px solid #555;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-size: 13px;
             }
             QPushButton:hover {
-                background-color: #555;
+                background-color: #444;
             }
         """)
         cancel_btn.clicked.connect(self.cancel_autoplay)
@@ -491,6 +528,7 @@ class StandalonePlayerWindow(QMainWindow):
         button_layout.addWidget(cancel_btn)
         
         layout.addLayout(button_layout)
+        layout.addStretch()
         
         # Show overlay
         self.autoplay_overlay.show()
@@ -505,7 +543,7 @@ class StandalonePlayerWindow(QMainWindow):
         self.autoplay_countdown_value -= 1
         
         if self.autoplay_countdown_value > 0:
-            self.countdown_label.setText(f"Playing in {self.autoplay_countdown_value} seconds...")
+            self.countdown_label.setText(f"Playing in {self.autoplay_countdown_value}s...")
         else:
             # Time's up - play next
             self.autoplay_timer.stop()
