@@ -114,8 +114,8 @@ class AutoPosterLoader(QThread):
                 print("✅ All content has posters")
                 return True  # All done!
             
-            print(f"🎨 Found {len(missing_posters)} items without posters - fetching...")
-            self.status_updated.emit(f"🎨 Fetching {len(missing_posters)} missing posters...")
+            print(f"🎨 Found {len(missing_posters)} items without posters - fetching silently...")
+            # Don't emit status to avoid UI clutter
             
             # Fetch posters (limit to 5 per cycle to avoid overload)
             batch_size = 5
@@ -172,7 +172,7 @@ class AutoPosterLoader(QThread):
                 if response.status_code == 200:
                     print(f"    ✅ Poster updated for: {title}")
                     self.poster_updated.emit(str(item_id), poster_url)
-                    self.status_updated.emit(f"✅ Loaded: {title}")
+                    # Silent mode - no status message
                 else:
                     print(f"    ⚠ Update failed: HTTP {response.status_code}")
             else:
@@ -314,21 +314,18 @@ class AutoPosterManager:
             self.loader = None
     
     def on_status_update(self, message):
-        """Handle status updates"""
+        """Handle status updates - silent mode (console only)"""
         print(f"📊 {message}")
-        # Parent can show this in status bar
-        if hasattr(self.parent, 'show_status_message'):
-            self.parent.show_status_message(message)
+        # Silent mode - don't show in UI to avoid distracting user
     
     def on_poster_updated(self, item_id, poster_url):
-        """Handle poster updated"""
+        """Handle poster updated - silent refresh"""
         print(f"✅ Poster updated: {item_id}")
-        # Parent can refresh the UI
+        # Silently refresh UI in background
         if hasattr(self.parent, 'refresh_content'):
             self.parent.refresh_content()
     
     def on_all_loaded(self):
-        """Handle all posters loaded"""
+        """Handle all posters loaded - silent completion"""
         print("🎉 All posters loaded!")
-        if hasattr(self.parent, 'show_status_message'):
-            self.parent.show_status_message("🎉 All posters loaded!")
+        # Silent mode - user doesn't need notification
