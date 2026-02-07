@@ -1,19 +1,24 @@
 """
-Update checker for MovieFlix
+Update Checker for MovieFlix
 Checks GitHub releases for new versions
 """
 
 import requests
 from typing import Optional, Dict
-
-# Import version from backend
 try:
-    from backend.version import __version__ as CURRENT_VERSION
+    from packaging import version
 except ImportError:
-    CURRENT_VERSION = "1.0.0"
+    # Fallback if packaging not available
+    class version:
+        @staticmethod
+        def parse(v):
+            return tuple(map(int, v.split('.')))
+
+from backend.version import __version__
 
 GITHUB_REPO = "pabz123/FilmStack"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+
 
 def get_latest_version() -> Optional[Dict]:
     """
@@ -29,12 +34,14 @@ def get_latest_version() -> Optional[Dict]:
             return {
                 'version': data['tag_name'].lstrip('v'),
                 'download_url': data['html_url'],
-                'release_notes': data['body'],
-                'published_at': data['published_at']
+                'release_notes': data.get('body', 'No release notes available.'),
+                'published_at': data.get('published_at', ''),
+                'assets': data.get('assets', [])
             }
     except Exception as e:
         print(f"Failed to check for updates: {e}")
     return None
+
 
 def is_update_available() -> tuple:
     """
@@ -48,22 +55,23 @@ def is_update_available() -> tuple:
         return False, None
     
     try:
-        # Simple version comparison (works for X.Y.Z format)
-        current_parts = [int(x) for x in CURRENT_VERSION.split('.')] 
-        latest_parts = [int(x) for x in latest['version'].split('.')] 
+        # Parse versions
+        if hasattr(version, 'parse'):
+            current = version.parse(__version__)
+            latest_ver = version.parse(latest['version'])
+        else:
+            # Fallback comparison
+            current = version.parse(__version__)
+            latest_ver = version.parse(latest['version'])
         
-        # Compare major, minor, patch
-        for curr, lat in zip(current_parts, latest_parts):
-            if lat > curr:
-                return True, latest
-            elif lat < curr:
-                return False, None
-        
-        return False, None
+        if latest_ver > current:
+            return True, latest
     except Exception as e:
         print(f"Error comparing versions: {e}")
-        return False, None
+    
+    return False, None
+
 
 def get_current_version() -> str:
     """Get the current version of MovieFlix."""
-    return CURRENT_VERSION
+    return __version__
