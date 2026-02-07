@@ -96,10 +96,16 @@ hiddenimports = [
     'win32api',
     'win32file',
     'pywintypes',
+    'backend',
+    'backend.version',
+    'backend.update_checker',
+    'app.update_dialog',
+    'packaging',
+    'packaging.version',
 ]
 
 a = Analysis(
-    ['start_movieflix.py'],  # Main entry point
+    ['start_movieflix.py'],
     pathex=[],
     binaries=[],
     datas=datas,
@@ -126,13 +132,13 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,  # No console window
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='MovieFlix.ico' if os.path.exists('MovieFlix.ico') else None,
+    icon='MovieFlix.ico',
 )
 
 coll = COLLECT(
@@ -145,7 +151,3 @@ coll = COLLECT(
     upx_exclude=[],
     name='MovieFlix',
 )
-
-print("\n" + "=" * 50)
-print("  Build configuration complete!")
-print("=" * 50)
