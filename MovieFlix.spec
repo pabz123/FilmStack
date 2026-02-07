@@ -5,21 +5,67 @@ Creates a standalone .exe with embedded icon and VLC support
 """
 
 import os
+import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-# Get all necessary data files
-datas = [
-    ('MovieFlix.ico', '.'),  # Icon file
-    ('.env', '.'),  # Environment variables
-    ('backend', 'backend'),  # Backend folder
-    ('app', 'app'),  # App folder
-]
+# Print status messages during build
+print("=" * 50)
+print("  Building MovieFlix.exe")
+print("=" * 50)
 
-# Add VLC if exists
-if os.path.exists('VLC'):
+# Check for required files
+required_files = ['start_movieflix.py', 'MovieFlix.ico']
+missing_files = [f for f in required_files if not os.path.exists(f)]
+
+if missing_files:
+    print("\nERROR: Missing required files:")
+    for f in missing_files:
+        print(f"  - {f}")
+    print("\nPlease ensure all required files exist before building.")
+    sys.exit(1)
+
+# Get all necessary data files - only add if they exist
+datas = []
+
+# Required files
+if os.path.exists('MovieFlix.ico'):
+    datas.append(('MovieFlix.ico', '.'))
+    print("✓ Found MovieFlix.ico")
+else:
+    print("✗ WARNING: MovieFlix.ico not found")
+
+# Optional files
+if os.path.exists('.env'):
+    datas.append(('.env', '.'))
+    print("✓ Found .env file")
+else:
+    print("  Note: .env file not found (optional)")
+
+# Required folders
+if os.path.exists('backend') and os.path.isdir('backend'):
+    datas.append(('backend', 'backend'))
+    print("✓ Found backend folder")
+else:
+    print("✗ WARNING: backend folder not found")
+
+if os.path.exists('app') and os.path.isdir('app'):
+    datas.append(('app', 'app'))
+    print("✓ Found app folder")
+else:
+    print("✗ WARNING: app folder not found")
+
+# Optional VLC folder
+if os.path.exists('VLC') and os.path.isdir('VLC'):
     datas.append(('VLC', 'VLC'))
+    print("✓ Found VLC folder (embedded player)")
+else:
+    print("  Note: VLC folder not found (will use system VLC if available)")
+
+print("\n" + "=" * 50)
+print(f"Including {len(datas)} data items in build")
+print("=" * 50 + "\n")
 
 # Hidden imports that PyInstaller might miss
 hiddenimports = [
@@ -86,7 +132,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='MovieFlix.ico',
+    icon='MovieFlix.ico' if os.path.exists('MovieFlix.ico') else None,
 )
 
 coll = COLLECT(
@@ -99,3 +145,7 @@ coll = COLLECT(
     upx_exclude=[],
     name='MovieFlix',
 )
+
+print("\n" + "=" * 50)
+print("  Build configuration complete!")
+print("=" * 50)
