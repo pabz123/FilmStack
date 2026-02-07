@@ -1681,7 +1681,10 @@ class AdvancedMovieLibrary(QMainWindow):
             
             self.player_window = StandalonePlayerWindow(self)
             self.player_window.closed.connect(self.on_player_closed)
-            self.player_window.play_next_requested.connect(lambda ep: self.play_episode(ep))
+            self.player_window.play_next_requested.connect(lambda ep: (
+                print(f"📡 Signal received! Playing next episode: {ep.get('series_title', '?')} S{ep.get('season_number', '?')}E{ep.get('episode_number', '?')}"),
+                self.play_episode(ep)
+            )[1])
             
             # Play the episode
             episode_id = episode.get('id')

@@ -54,6 +54,7 @@ class StandalonePlayerWindow(QMainWindow):
         self.autoplay_timer = QTimer()
         self.autoplay_timer.timeout.connect(self.autoplay_countdown)
         self.autoplay_countdown_value = 10
+        self.auto_play_at_end = False  # Flag: auto-play when video ends (after cancel)
         
         # Window setup
         self.setWindowTitle("MovieFlix Player")
@@ -223,10 +224,14 @@ class StandalonePlayerWindow(QMainWindow):
                 delattr(self, '_credits_triggered')
             if hasattr(self, '_end_triggered'):
                 delattr(self, '_end_triggered')
+            self.auto_play_at_end = False  # Reset cancel flag
             
             print(f"▶ Loading: {path}")
             if next_media:
                 print(f"📺 Next queued: {next_media.get('title', 'Unknown')}")
+                print(f"   Details: Type={media_type}, Season={next_media.get('season_number')}, Episode={next_media.get('episode_number')}")
+            else:
+                print("⚠ No next media queued")
             
             # Create media
             media = self.instance.media_new(path)
@@ -338,6 +343,12 @@ class StandalonePlayerWindow(QMainWindow):
                 
                 length_minutes = length / 60000  # Convert to minutes
                 
+                # Debug: Log every 10 seconds to track progress
+                if int(position / 10000) % 1 == 0 and not hasattr(self, f'_debug_{int(position/10000)}'):
+                    setattr(self, f'_debug_{int(position/10000)}', True)
+                    time_remaining_sec = (length - position) / 1000
+                    print(f"⏱ Position: {pos_min:02d}:{pos_sec:02d} / {len_min:02d}:{len_sec:02d} (remaining: {int(time_remaining_sec)}s) | Type: {self.current_type} | Next: {self.next_media_data.get('title', 'Unknown')}")
+                
                 if self.current_type == "episode":
                     # For episodes: trigger earlier to catch all credit types
                     if length_minutes <= 25:  # Short episodes (20-25 min)
@@ -359,8 +370,18 @@ class StandalonePlayerWindow(QMainWindow):
                 # Trigger when entering credits zone
                 if position >= credits_threshold and not hasattr(self, '_credits_triggered'):
                     self._credits_triggered = True
-                    print(f"🎬 Credits detected at {pos_min:02d}:{pos_sec:02d} (length: {len_min}:{len_sec:02d}) - showing auto-next")
+                    threshold_min = int(credits_threshold / 60000)
+                    threshold_sec = int((credits_threshold % 60000) / 1000)
+                    print(f"🎬 Credits detected at {pos_min:02d}:{pos_sec:02d} (threshold was {threshold_min:02d}:{threshold_sec:02d}, length: {len_min}:{len_sec:02d}) - showing auto-next")
                     QTimer.singleShot(500, self.on_video_ended)
+            
+            # Check if video actually ends - auto-play if user cancelled overlay
+            if self.auto_play_at_end and self.next_media_data and length > 0 and position > 0:
+                time_remaining = (length - position) / 1000  # seconds
+                if time_remaining <= 2 and time_remaining > 0 and not hasattr(self, '_end_triggered'):
+                    self._end_triggered = True
+                    print("🎬 Video ended naturally - auto-playing next (user cancelled overlay earlier)")
+                    QTimer.singleShot(500, self.play_next_now)
             
             # Fallback: If no next content, close when video actually ends (last 2 seconds)
             if not self.next_media_data and length > 0 and position > 0:
@@ -440,7 +461,10 @@ class StandalonePlayerWindow(QMainWindow):
     def show_autoplay_overlay(self):
         """Show auto-play next overlay with countdown (Netflix-style bottom-right)"""
         if not self.next_media_data:
+            print("⚠ show_autoplay_overlay called but no next_media_data!")
             return
+        
+        print(f"🎬 Creating autoplay overlay for: {self.next_media_data.get('title', 'Unknown')}")
         
         # Create overlay widget positioned in bottom-right corner
         self.autoplay_overlay = QWidget(self.centralWidget())
@@ -548,10 +572,12 @@ class StandalonePlayerWindow(QMainWindow):
         # Show overlay
         self.autoplay_overlay.show()
         self.autoplay_overlay.raise_()
+        print(f"✓ Overlay shown at position ({x}, {y})")
         
         # Start countdown
         self.autoplay_countdown_value = 10
         self.autoplay_timer.start(1000)  # 1 second interval
+        print("✓ Countdown timer started (10 seconds)")
     
     def autoplay_countdown(self):
         """Update countdown and auto-play when reaches 0"""
@@ -579,15 +605,16 @@ class StandalonePlayerWindow(QMainWindow):
         
         # Emit signal to play next
         if self.next_media_data:
+            print(f"📡 Emitting play_next_requested signal with: {self.next_media_data.get('title', 'Unknown')}")
             self.play_next_requested.emit(self.next_media_data)
-            # Close this player - parent will open new one
-            self.close()
+            # Close this player after short delay - parent will open new one
+            QTimer.singleShot(100, self.close)
     
     def cancel_autoplay(self):
-        """Cancel auto-play and close player"""
-        print("✕ Auto-play cancelled")
+        """Cancel countdown overlay but still auto-play next when video ends"""
+        print("✕ Countdown cancelled - will auto-play next when video ends")
         
-        # Stop timer
+        # Stop countdown timer
         self.autoplay_timer.stop()
         
         # Hide overlay
@@ -596,8 +623,9 @@ class StandalonePlayerWindow(QMainWindow):
             self.autoplay_overlay.deleteLater()
             self.autoplay_overlay = None
         
-        # Close player
-        self.close()
+        # Set flag to auto-play at video end (without overlay)
+        self.auto_play_at_end = True
+        print("→ User will watch credits, auto-play triggers at video end")
     
     def stop(self):
         """Stop playback"""
