@@ -12,6 +12,7 @@ import subprocess
 import time
 import socket
 import datetime
+import threading
 
 
 def is_port_in_use(port):
@@ -24,26 +25,74 @@ def is_port_in_use(port):
             return True
 
 
-def start_backend_silent():
-    """Start backend server silently in background."""
-    # Get paths
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    venv_python = os.path.join(current_dir, 'venv', 'Scripts', 'pythonw.exe')  # Use pythonw.exe for no console
-    
-    # Check if backend is already running
-    if is_port_in_use(8765):
-        print("Backend already running on port 8765")
-        _startup_log("Backend already running")
-        return True
-    
-    # Start backend as detached process (no console window)
+def _startup_log(message: str) -> None:
+    """Write startup diagnostics to a log file."""
     try:
-        # Use CREATE_NO_WINDOW flag on Windows to hide console
+        if getattr(sys, 'frozen', False):
+            current_dir = os.path.dirname(sys.executable)
+        else:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        log_path = os.path.join(current_dir, "movieflix_startup.log")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] {message}\n")
+    except Exception:
+        pass
+
+
+def start_backend_threaded():
+    """Start backend in a background thread (for frozen exe)."""
+    def run_backend():
+        try:
+            import uvicorn
+            from backend.main import app
+            
+            _startup_log("Backend thread starting uvicorn server")
+            
+            config = uvicorn.Config(
+                app=app,
+                host="0.0.0.0",
+                port=8765,
+                log_level="error",
+                access_log=False
+            )
+            server = uvicorn.Server(config)
+            server.run()
+        except Exception as e:
+            _startup_log(f"Backend thread error: {e}")
+            print(f"Backend error: {e}")
+    
+    # Start backend in daemon thread
+    backend_thread = threading.Thread(target=run_backend, daemon=True)
+    backend_thread.start()
+    
+    print("Backend started in thread...")
+    _startup_log("Backend started in background thread")
+    
+    # Wait for it to be ready
+    for i in range(20):
+        time.sleep(0.5)
+        if is_port_in_use(8765):
+            print(f"Backend ready in {(i+1)*0.5:.1f} seconds!")
+            _startup_log("Backend is responding on port 8765")
+            return True
+    
+    print("Backend thread started but not responding yet")
+    _startup_log("Backend thread started but port 8765 not responding")
+    return False
+
+
+def start_backend_subprocess():
+    """Start backend as subprocess (for running from source)."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    venv_python = os.path.join(current_dir, 'venv', 'Scripts', 'pythonw.exe')
+    
+    try:
         if sys.platform == 'win32':
             DETACHED_PROCESS = 0x00000008
             CREATE_NO_WINDOW = 0x08000000
             
-            # Use uvicorn module to start backend properly
             subprocess.Popen(
                 [venv_python, '-m', 'uvicorn', 'backend.main:app', '--host', '0.0.0.0', '--port', '8765'],
                 cwd=current_dir,
@@ -53,7 +102,6 @@ def start_backend_silent():
                 creationflags=DETACHED_PROCESS | CREATE_NO_WINDOW
             )
         else:
-            # Unix-like systems
             subprocess.Popen(
                 [venv_python, '-m', 'uvicorn', 'backend.main:app', '--host', '0.0.0.0', '--port', '8765'],
                 cwd=current_dir,
@@ -66,7 +114,7 @@ def start_backend_silent():
         print("Starting backend...")
         _startup_log("Starting backend process")
         
-        # Wait for backend to be ready (max 5 seconds with faster checks)
+        # Wait for backend to be ready
         for i in range(10):
             time.sleep(0.5)
             if is_port_in_use(8765):
@@ -74,7 +122,6 @@ def start_backend_silent():
                 _startup_log("Backend port is open")
                 return True
         
-        # Backend not responding yet, but continue anyway
         print("Backend started but not responding yet - continuing...")
         return True
         
@@ -84,27 +131,31 @@ def start_backend_silent():
         return False
 
 
-def _startup_log(message: str) -> None:
-    """Write startup diagnostics to a log file (useful for pythonw/.exe runs)."""
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        log_path = os.path.join(current_dir, "movieflix_startup.log")
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"[{timestamp}] {message}\n")
-    except Exception:
-        pass
+def start_backend_silent():
+    """Start backend server silently in background."""
+    # Check if backend is already running
+    if is_port_in_use(8765):
+        print("Backend already running on port 8765")
+        _startup_log("Backend already running")
+        return True
+    
+    # Check if running as frozen exe
+    if getattr(sys, 'frozen', False):
+        _startup_log("Running as frozen exe - starting backend in thread")
+        return start_backend_threaded()
+    else:
+        _startup_log("Running from source - starting backend as subprocess")
+        return start_backend_subprocess()
 
 
 def launch_gui():
     """Launch the GUI application."""
     try:
-        # Keep this short; backend readiness is already checked in start_backend_silent().
         print("Waiting for backend to be ready...")
         time.sleep(0.2)
         _startup_log("Launching GUI")
         
-        # Import and run the launcher (now goes directly to login)
+        # Import and run the launcher
         from app.launcher import main
         main()
     except Exception as e:
@@ -118,7 +169,6 @@ def launch_gui():
             from PyQt5.QtWidgets import QApplication, QMessageBox
             app = QApplication(sys.argv)
             
-            # Set dark theme to avoid white flash
             from PyQt5.QtGui import QPalette, QColor
             from PyQt5.QtCore import Qt
             palette = QPalette()
@@ -136,21 +186,23 @@ def launch_gui():
 
 
 if __name__ == "__main__":
-    # Change to script directory
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    _startup_log("="*50)
+    _startup_log("MovieFlix starting")
+    _startup_log(f"Python: {sys.version}")
+    _startup_log(f"Frozen: {getattr(sys, 'frozen', False)}")
+    _startup_log(f"Executable: {sys.executable}")
     
-    # Check if backend is already running
-    if is_port_in_use(8765):
-        print("Backend already running, skipping backend start")
-        _startup_log("Backend already running, launching GUI")
-        # Launch GUI directly
+    # Change to script directory
+    if getattr(sys, 'frozen', False):
+        os.chdir(os.path.dirname(sys.executable))
+    else:
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Start backend and launch GUI
+    if start_backend_silent():
         launch_gui()
     else:
-        # Start backend silently
-        if start_backend_silent():
-            # Launch GUI
-            launch_gui()
-        else:
-            print("Failed to start backend. Exiting.")
-            _startup_log("Failed to start backend")
-            sys.exit(1)
+        print("Failed to start backend. Exiting.")
+        _startup_log("Failed to start backend - exiting")
+        input("Press Enter to exit...")
+        sys.exit(1)
