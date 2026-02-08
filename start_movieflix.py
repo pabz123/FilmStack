@@ -63,24 +63,22 @@ def start_backend_threaded():
             _startup_log(f"Backend thread error: {e}")
             print(f"Backend error: {e}")
     
-    # Start backend in daemon thread
     backend_thread = threading.Thread(target=run_backend, daemon=True)
     backend_thread.start()
     
     print("Backend started in thread...")
     _startup_log("Backend started in background thread")
     
-    # Wait for it to be ready
-    for i in range(20):
+    for i in range(40):
         time.sleep(0.5)
         if is_port_in_use(8765):
             print(f"Backend ready in {(i+1)*0.5:.1f} seconds!")
             _startup_log("Backend is responding on port 8765")
             return True
     
-    print("Backend thread started but not responding yet")
-    _startup_log("Backend thread started but port 8765 not responding")
-    return False
+    print("Backend thread started but not responding yet - continuing anyway")
+    _startup_log("Backend thread started but port 8765 not responding - continuing")
+    return True
 
 
 def start_backend_subprocess():
@@ -114,7 +112,6 @@ def start_backend_subprocess():
         print("Starting backend...")
         _startup_log("Starting backend process")
         
-        # Wait for backend to be ready
         for i in range(10):
             time.sleep(0.5)
             if is_port_in_use(8765):
@@ -133,13 +130,11 @@ def start_backend_subprocess():
 
 def start_backend_silent():
     """Start backend server silently in background."""
-    # Check if backend is already running
     if is_port_in_use(8765):
         print("Backend already running on port 8765")
         _startup_log("Backend already running")
         return True
     
-    # Check if running as frozen exe
     if getattr(sys, 'frozen', False):
         _startup_log("Running as frozen exe - starting backend in thread")
         return start_backend_threaded()
@@ -155,7 +150,6 @@ def launch_gui():
         time.sleep(0.2)
         _startup_log("Launching GUI")
         
-        # Import and run the launcher
         from app.launcher import main
         main()
     except Exception as e:
@@ -164,7 +158,6 @@ def launch_gui():
         import traceback
         traceback.print_exc()
         
-        # Show error dialog
         try:
             from PyQt5.QtWidgets import QApplication, QMessageBox
             app = QApplication(sys.argv)
@@ -192,13 +185,11 @@ if __name__ == "__main__":
     _startup_log(f"Frozen: {getattr(sys, 'frozen', False)}")
     _startup_log(f"Executable: {sys.executable}")
     
-    # Change to script directory
     if getattr(sys, 'frozen', False):
         os.chdir(os.path.dirname(sys.executable))
     else:
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
-    # Start backend and launch GUI
     if start_backend_silent():
         launch_gui()
     else:
