@@ -74,12 +74,14 @@ class StartupThread(QThread):
             # Check 1: VLC availability
             self.progress.emit(20, "Checking media player...")
             time.sleep(0.3)
-            try:
-                import vlc
-                self.progress.emit(30, "✓ Media player ready")
-            except ImportError:
-                self.error.emit("VLC not found. Please install python-vlc:\npip install python-vlc")
+            
+            # Check if VLC is available
+            from app.vlc_installer_helper import check_vlc_installed
+            if not check_vlc_installed():
+                self.error.emit("VLC_NOT_FOUND")  # Special error code
                 return
+            
+            self.progress.emit(30, "✓ Media player ready")
             
             # Check 2: Backend connection
             self.progress.emit(50, "Connecting to backend...")
@@ -212,6 +214,20 @@ class LoadingScreen(QWidget):
     def show_error(self, message):
         """Show error and close"""
         from PyQt5.QtWidgets import QMessageBox
+        
+        # Special handling for VLC not found
+        if message == "VLC_NOT_FOUND":
+            from app.vlc_installer_helper import show_vlc_required_dialog
+            if show_vlc_required_dialog(self):
+                # User installed VLC and wants to continue - restart checks
+                self.start_startup()
+                return
+            else:
+                # User chose to exit
+                QApplication.quit()
+                return
+        
+        # Other errors
         QMessageBox.critical(self, "Startup Error", message)
         QApplication.quit()
     
@@ -294,8 +310,8 @@ def main():
     app.setPalette(palette)
     
     # Show splash screen
-    from app.splash_screen import SplashScreen
-    splash = SplashScreen()
+    from app.splash_screen import LoadingSplash
+    splash = LoadingSplash()
     splash.show()
     app.processEvents()
     
@@ -324,10 +340,10 @@ def main():
         # Small delay before showing login
         time.sleep(0.15)
         
-        # Close splash with fade
-        splash.close_with_fade()
+        # Close splash
+        splash.close()
         
-        # Wait for splash fade, then show login
+        # Wait briefly, then show login
         time.sleep(0.2)
         
         # Show login dialog

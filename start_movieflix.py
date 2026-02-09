@@ -66,19 +66,18 @@ def start_backend_threaded():
     backend_thread = threading.Thread(target=run_backend, daemon=True)
     backend_thread.start()
     
-    print("Backend started in thread...")
     _startup_log("Backend started in background thread")
     
-    for i in range(40):
+    # Wait up to 60 seconds
+    for i in range(120):  # 120 * 0.5 = 60 seconds
         time.sleep(0.5)
+        
         if is_port_in_use(8765):
-            print(f"Backend ready in {(i+1)*0.5:.1f} seconds!")
-            _startup_log("Backend is responding on port 8765")
+            _startup_log(f"Backend is responding on port 8765 after {(i+1)*0.5:.1f}s")
             return True
     
-    print("Backend thread started but not responding yet - continuing anyway")
-    _startup_log("Backend thread started but port 8765 not responding - continuing")
-    return True
+    _startup_log("Backend thread started but port 8765 not responding after 60s - continuing")
+    return True  # Continue anyway
 
 
 def start_backend_subprocess():
@@ -109,21 +108,17 @@ def start_backend_subprocess():
                 start_new_session=True
             )
         
-        print("Starting backend...")
         _startup_log("Starting backend process")
         
-        for i in range(10):
+        for i in range(20):
             time.sleep(0.5)
             if is_port_in_use(8765):
-                print(f"Backend ready in {(i+1)*0.5:.1f} seconds!")
                 _startup_log("Backend port is open")
                 return True
         
-        print("Backend started but not responding yet - continuing...")
         return True
         
     except Exception as e:
-        print(f"Failed to start backend: {e}")
         _startup_log(f"Failed to start backend: {e}")
         return False
 
@@ -131,7 +126,6 @@ def start_backend_subprocess():
 def start_backend_silent():
     """Start backend server silently in background."""
     if is_port_in_use(8765):
-        print("Backend already running on port 8765")
         _startup_log("Backend already running")
         return True
     
@@ -146,14 +140,11 @@ def start_backend_silent():
 def launch_gui():
     """Launch the GUI application."""
     try:
-        print("Waiting for backend to be ready...")
-        time.sleep(0.2)
         _startup_log("Launching GUI")
         
         from app.launcher import main
         main()
     except Exception as e:
-        print(f"Failed to launch GUI: {e}")
         _startup_log(f"Failed to launch GUI: {e}")
         import traceback
         traceback.print_exc()
@@ -172,7 +163,7 @@ def launch_gui():
             QMessageBox.critical(
                 None,
                 "MovieFlix Error",
-                f"Failed to launch application:\n\n{str(e)}\n\nCheck that all dependencies are installed."
+                f"Failed to launch application:\n\n{str(e)}"
             )
         except:
             pass
@@ -191,9 +182,17 @@ if __name__ == "__main__":
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
     if start_backend_silent():
+        # Extra delay to ensure backend is fully ready
+        time.sleep(2)
         launch_gui()
     else:
-        print("Failed to start backend. Exiting.")
         _startup_log("Failed to start backend - exiting")
-        input("Press Enter to exit...")
+        
+        try:
+            from PyQt5.QtWidgets import QApplication, QMessageBox
+            app = QApplication(sys.argv)
+            QMessageBox.critical(None, "MovieFlix Error", "Failed to start backend server.")
+        except:
+            pass
+        
         sys.exit(1)

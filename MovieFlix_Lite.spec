@@ -1,19 +1,38 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""
+MovieFlix Lite PyInstaller Configuration
+Creates a lightweight build WITHOUT VLC bundled
+Users install VLC separately from videolan.org
+"""
 import os
 import sys
+from pathlib import Path
 
 block_cipher = None
 project_dir = os.path.abspath('.')
+
+print("=" * 50)
+print("  Building MovieFlix LITE (No VLC)")
+print("=" * 50)
+print("VLC will NOT be bundled.")
+print("Users must install VLC from https://www.videolan.org/")
+print("=" * 50)
+
+# Prepare datas list (NO VLC folder)
+datas_list = [
+    ('backend', 'backend'),
+    ('app', 'app'),
+    ('MovieFlix.ico', '.'),  # Icon in root
+    ('.env', '.'),  # Environment file
+]
 
 a = Analysis(
     ['start_movieflix.py'],
     pathex=[project_dir],
     binaries=[],
-    datas=[
-        ('backend', 'backend'),
-        ('app', 'app'),
-    ],
+    datas=datas_list,
     hiddenimports=[
+        # Uvicorn (Backend server)
         'uvicorn',
         'uvicorn.logging',
         'uvicorn.loops',
@@ -21,30 +40,60 @@ a = Analysis(
         'uvicorn.protocols',
         'uvicorn.protocols.http',
         'uvicorn.protocols.http.auto',
+        'uvicorn.protocols.http.h11_impl',
         'uvicorn.protocols.websockets',
         'uvicorn.protocols.websockets.auto',
         'uvicorn.lifespan',
         'uvicorn.lifespan.on',
+        # FastAPI
+        'fastapi',
+        'fastapi.responses',
+        'multipart',
+        'python_multipart',
+        # PyQt5 (UI)
         'PyQt5',
         'PyQt5.QtCore',
         'PyQt5.QtGui',
         'PyQt5.QtWidgets',
+        'PyQt5.sip',
+        # VLC (bindings only, not VLC itself)
         'vlc',
+        # Database
         'sqlalchemy',
+        'sqlalchemy.ext',
         'sqlalchemy.ext.declarative',
         'sqlalchemy.orm',
-        'fastapi',
+        'sqlalchemy.sql',
+        'sqlalchemy.sql.default_comparator',
+        # Utilities
         'requests',
         'PIL',
         'PIL.Image',
+        'PIL.ImageQt',
         'packaging',
         'packaging.version',
         'dotenv',
+        'python_dotenv',
+        # Windows-specific
+        'win32api',
+        'win32con',
+        'win32com',
+        'pythoncom',
+        'pywintypes',
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'matplotlib',
+        'numpy',
+        'pandas',
+        'scipy',
+        'pytest',
+        'tkinter',
+        'jupyter',
+        'notebook',
+    ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -63,13 +112,14 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,  # ✅ NO CONSOLE WINDOW!
+    console=False,  # No console window
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='MovieFlix.ico' if os.path.exists('MovieFlix.ico') else None,
+    version_file=None,
 )
 
 coll = COLLECT(

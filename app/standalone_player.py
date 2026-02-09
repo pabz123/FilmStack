@@ -224,6 +224,8 @@ class StandalonePlayerWindow(QMainWindow):
                 delattr(self, '_credits_triggered')
             if hasattr(self, '_end_triggered'):
                 delattr(self, '_end_triggered')
+            if hasattr(self, '_last_debug_mark'):
+                delattr(self, '_last_debug_mark')
             self.auto_play_at_end = False  # Reset cancel flag
             
             print(f"▶ Loading: {path}")
@@ -343,9 +345,12 @@ class StandalonePlayerWindow(QMainWindow):
                 
                 length_minutes = length / 60000  # Convert to minutes
                 
-                # Debug: Log every 10 seconds to track progress
-                if int(position / 10000) % 1 == 0 and not hasattr(self, f'_debug_{int(position/10000)}'):
-                    setattr(self, f'_debug_{int(position/10000)}', True)
+                # Debug: Log every 30 seconds to track progress
+                current_30sec_mark = int(position / 30000)
+                if not hasattr(self, '_last_debug_mark'):
+                    self._last_debug_mark = -1
+                if current_30sec_mark != self._last_debug_mark:
+                    self._last_debug_mark = current_30sec_mark
                     time_remaining_sec = (length - position) / 1000
                     print(f"⏱ Position: {pos_min:02d}:{pos_sec:02d} / {len_min:02d}:{len_sec:02d} (remaining: {int(time_remaining_sec)}s) | Type: {self.current_type} | Next: {self.next_media_data.get('title', 'Unknown')}")
                 
