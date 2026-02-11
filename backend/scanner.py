@@ -321,19 +321,25 @@ def scan_series(series_dir):
                                 
                                 if file_size <= MIN_VIDEO_SIZE:
                                     skipped_short += 1
+                                    print(f"    ⏭️ Skipping short episode: {file} ({file_size_mb:.1f}MB)")
                                     continue
                                     
                                 print(f"    ✓ Including episode: {file} ({file_size_mb:.1f}MB)")
-                            except Exception:
+                            except Exception as e:
+                                print(f"    ⚠️ Can't check size for {file}: {e}")
                                 pass
                             
                             # Parse episode info
-                            episode_data = parse_episode(file, root)
-                            series_title = episode_data['series_title']
-                            
-                            if series_title not in series_dict:
-                                series_dict[series_title] = []
-                            series_dict[series_title].append(episode_data)
+                            try:
+                                episode_data = parse_episode(file, root)
+                                series_title = episode_data['series_title']
+                                
+                                if series_title not in series_dict:
+                                    series_dict[series_title] = []
+                                    print(f"    📺 New series found: {series_title}")
+                                series_dict[series_title].append(episode_data)
+                            except Exception as e:
+                                print(f"    ❌ Error parsing episode {file}: {e}")
                         else:
                             skipped_movies += 1
                             
@@ -510,13 +516,16 @@ def is_episode(filename):
     Returns:
         bool: True if appears to be an episode, False otherwise
     """
-    # Check for episode patterns
+    # Check for episode patterns (S01E01, S1E1, etc.)
     if EPISODE_PATTERN.search(filename):
         return True
     
     # Check for common series indicators
-    episode_indicators = ['episode', 'ep', 'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 
-                         'e6', 'e7', 'e8', 'e9', 'season']
+    episode_indicators = [
+        'episode', 'ep ', ' ep', 'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 
+        'e6', 'e7', 'e8', 'e9', 'season', ' s0', ' s1', ' s2', ' s3',
+        '.s0', '.s1', '.s2', '.s3', 'part', 'pt'
+    ]
     
     filename_lower = filename.lower()
     return any(indicator in filename_lower for indicator in episode_indicators)
