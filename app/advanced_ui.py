@@ -87,8 +87,16 @@ except:
     from series_dialog import SeriesEpisodeDialog
     from login_dialog import LoginDialog
 
-# Get API URL from environment or use default
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8765")
+# Get API URL from dynamic port config
+try:
+    # Try to import from backend config
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from backend.config import BACKEND_URL
+    API_URL = BACKEND_URL
+except ImportError:
+    # Fallback to environment or default
+    API_URL = os.getenv("API_URL", "http://127.0.0.1:8765")
 
 # Global auth credentials
 AUTH_CREDENTIALS = None

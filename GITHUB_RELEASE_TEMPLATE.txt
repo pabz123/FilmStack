@@ -1,0 +1,48 @@
+# MovieFlix v1.0.0
+
+🎬 **Your personal Netflix-style movie library!**
+
+## 📥 Download
+
+**MovieFlix_Lite_v1.0.zip** (85 MB)
+
+## ⚠️ VLC Required
+
+**Install VLC Media Player first:** https://www.videolan.org/vlc/ (free)
+
+## ✨ Features
+
+- Netflix-style UI with movie posters
+- Auto movie/series detection
+- Integrated video player
+- Auto metadata & posters from TMDB
+- Auto-next episode (Netflix-style)
+- Resume playback
+- External drive scanning
+- Episode tracking
+
+## 🚀 Installation
+
+1. **Install VLC** (https://www.videolan.org/vlc/)
+2. **Extract** MovieFlix_Lite_v1.0.zip
+3. **Run** MovieFlix.exe
+4. **Add movies** to library folder
+5. **Scan** and enjoy!
+
+## 📋 Requirements
+
+- Windows 10/11 (64-bit)
+- VLC Media Player
+- 4GB RAM
+
+## 📖 Documentation
+
+Full user guide included: **README.txt** in download
+
+## 🐛 Issues?
+
+[Report here](https://github.com/yourusername/movieflix/issues)
+
+---
+
+**Made with ❤️ for movie enthusiasts**

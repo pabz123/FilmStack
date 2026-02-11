@@ -20,21 +20,23 @@ Transform your movie and TV show collection into a Netflix-style streaming exper
 - **Storage**: 500MB for application + space for your media
 - **Internet**: Required for fetching movie posters (optional)
 
-## 🚀 Installation Options
+## 🚀 Quick Start
 
-### Option 1: Installer (Recommended)
-1. Run `MovieFlix_Setup_v1.0.0.exe`
-2. Follow the installation wizard
-3. Choose where to install
-4. Choose your library location
-5. Click Install and wait
-6. Launch MovieFlix from Start Menu or Desktop
+### Installation (Portable - No Installer Needed!)
+1. **Download** MovieFlix_Lite_v1.0.zip from GitHub
+2. **Install VLC** first - Download from https://www.videolan.org/vlc/ (free)
+3. **Extract** the ZIP file to any folder (e.g., C:\MovieFlix)
+4. **Run** MovieFlix.exe
+5. **Create Account** and login
+6. **Add Movies** to the library folder
+7. **Scan** and enjoy!
 
-### Option 2: Portable Version
-1. Extract `MovieFlix_Portable.zip` to any folder
-2. Open the extracted folder
-3. Create a `library` folder inside (if it doesn't exist)
-4. Run `MovieFlix.exe`
+### First-Time Setup
+1. Double-click **MovieFlix.exe**
+2. If VLC not found, you'll see a dialog - click to download VLC
+3. Install VLC, then click "Check Again" in MovieFlix
+4. Create your account (stored locally, not online)
+5. Login and start adding movies!
 
 ## 📁 Setting Up Your Library
 
@@ -90,12 +92,11 @@ library/
 ## ⚙️ Configuration
 
 ### Settings Location
-- **Installed**: `C:\Users\YourName\AppData\Local\MovieFlix\`
-- **Portable**: Same folder as MovieFlix.exe
+All settings and database are stored in the same folder as MovieFlix.exe
 
 ### Environment Variables (.env)
 ```env
-API_URL=http://localhost:8000
+API_URL=http://localhost:8765
 TMDB_API_KEY=your_api_key_here
 LIBRARY_PATH=C:\Users\YourName\Documents\MovieFlix Library
 ```
@@ -133,10 +134,11 @@ LIBRARY_PATH=C:\Users\YourName\Documents\MovieFlix Library
 - **Run as Administrator**: Right-click → Run as administrator
 
 ### No video playback
-- **VLC Required**: If VLC folder wasn't bundled
-  - Download VLC: https://www.videolan.org/
-  - Install it
+- **VLC Required**: VLC must be installed separately
+  - Download VLC: https://www.videolan.org/vlc/
+  - Install VLC
   - Restart MovieFlix
+  - MovieFlix will detect VLC automatically
 
 ### Posters not loading
 - **Check internet connection**

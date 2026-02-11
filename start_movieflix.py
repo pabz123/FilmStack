@@ -14,6 +14,22 @@ import socket
 import datetime
 import threading
 
+# Add backend to path for config import
+sys.path.insert(0, os.path.dirname(__file__))
+
+try:
+    from backend.config import STARTUP_LOG, BACKEND_LOG, ensure_dir_exists
+    # Ensure log directory exists
+    ensure_dir_exists(STARTUP_LOG.parent)
+    _log_path = str(STARTUP_LOG)
+except ImportError:
+    # Fallback if config not available
+    if getattr(sys, 'frozen', False):
+        current_dir = os.path.dirname(sys.executable)
+    else:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+    _log_path = os.path.join(current_dir, "movieflix_startup.log")
+
 
 def is_port_in_use(port):
     """Check if a port is already in use."""
@@ -28,14 +44,8 @@ def is_port_in_use(port):
 def _startup_log(message: str) -> None:
     """Write startup diagnostics to a log file."""
     try:
-        if getattr(sys, 'frozen', False):
-            current_dir = os.path.dirname(sys.executable)
-        else:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        log_path = os.path.join(current_dir, "movieflix_startup.log")
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open(log_path, "a", encoding="utf-8") as f:
+        with open(_log_path, "a", encoding="utf-8") as f:
             f.write(f"[{timestamp}] {message}\n")
     except Exception:
         pass
@@ -43,41 +53,73 @@ def _startup_log(message: str) -> None:
 
 def start_backend_threaded():
     """Start backend in a background thread (for frozen exe)."""
+    # Get dynamic port from config
+    try:
+        from backend.config import BACKEND_PORT
+        port = BACKEND_PORT
+    except ImportError:
+        port = 8765  # Fallback
+    
     def run_backend():
         try:
+            _startup_log(f"Backend thread: Importing uvicorn and FastAPI app (port {port})")
             import uvicorn
-            from backend.main import app
             
-            _startup_log("Backend thread starting uvicorn server")
+            # Import backend app
+            try:
+                from backend.main import app
+                _startup_log("Backend thread: Successfully imported backend.main.app")
+            except Exception as import_error:
+                _startup_log(f"Backend thread: Failed to import backend.main.app: {import_error}")
+                import traceback
+                _startup_log(f"Backend thread: Traceback: {traceback.format_exc()}")
+                return
+            
+            _startup_log(f"Backend thread: Starting uvicorn server on port {port}")
             
             config = uvicorn.Config(
                 app=app,
-                host="0.0.0.0",
-                port=8765,
+                host="127.0.0.1",
+                port=port,
                 log_level="error",
                 access_log=False
             )
             server = uvicorn.Server(config)
+            _startup_log("Backend thread: Uvicorn config created, calling server.run()")
             server.run()
         except Exception as e:
             _startup_log(f"Backend thread error: {e}")
+            import traceback
+            _startup_log(f"Backend thread traceback: {traceback.format_exc()}")
             print(f"Backend error: {e}")
     
+    _startup_log("Creating backend thread")
     backend_thread = threading.Thread(target=run_backend, daemon=True)
     backend_thread.start()
     
-    _startup_log("Backend started in background thread")
+    _startup_log(f"Backend thread started, waiting for port {port} to open")
     
     # Wait up to 60 seconds
     for i in range(120):  # 120 * 0.5 = 60 seconds
         time.sleep(0.5)
         
-        if is_port_in_use(8765):
-            _startup_log(f"Backend is responding on port 8765 after {(i+1)*0.5:.1f}s")
+        if is_port_in_use(port):
+            _startup_log(f"✓ Backend is responding on port {port} after {(i+1)*0.5:.1f}s")
+            print(f"✓ Backend started on port {port} in {(i+1)*0.5:.1f}s")
             return True
+        
+        # Progress indicator every 5 seconds
+        if (i+1) % 10 == 0:
+            elapsed = (i+1) * 0.5
+            _startup_log(f"Still waiting for backend... ({elapsed:.1f}s)")
     
-    _startup_log("Backend thread started but port 8765 not responding after 60s - continuing")
-    return True  # Continue anyway
+    _startup_log(f"⚠ Backend thread started but port {port} not responding after 60s - continuing anyway")
+    return False
+            _startup_log(f"Still waiting for backend... ({(i+1)*0.5:.1f}s)")
+    
+    _startup_log("⚠ Backend thread started but port 8765 not responding after 60s - continuing anyway")
+    print("⚠ Warning: Backend may not have started properly")
+    return False  # Return False to indicate problem
 
 
 def start_backend_subprocess():
@@ -176,23 +218,50 @@ if __name__ == "__main__":
     _startup_log(f"Frozen: {getattr(sys, 'frozen', False)}")
     _startup_log(f"Executable: {sys.executable}")
     
+    # Change to correct directory
     if getattr(sys, 'frozen', False):
         os.chdir(os.path.dirname(sys.executable))
+        _startup_log(f"Changed directory to: {os.getcwd()}")
     else:
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
+        _startup_log(f"Running from source, directory: {os.getcwd()}")
     
-    if start_backend_silent():
-        # Extra delay to ensure backend is fully ready
-        time.sleep(2)
-        launch_gui()
-    else:
-        _startup_log("Failed to start backend - exiting")
+    _startup_log("Starting backend server...")
+    print("Starting MovieFlix...")
+    print("Starting backend server...")
+    
+    backend_started = start_backend_silent()
+    
+    if not backend_started:
+        _startup_log("⚠ Backend failed to start properly!")
+        print("⚠ Warning: Backend may not have started")
+        print("Check movieflix_startup.log for details")
         
+        # Show error dialog
         try:
             from PyQt5.QtWidgets import QApplication, QMessageBox
             app = QApplication(sys.argv)
-            QMessageBox.critical(None, "MovieFlix Error", "Failed to start backend server.")
-        except:
-            pass
-        
-        sys.exit(1)
+            QMessageBox.critical(
+                None,
+                "Backend Error",
+                "The MovieFlix backend server failed to start.\n\n"
+                "This is likely a temporary issue.\n\n"
+                "Solutions:\n"
+                "1. Close and restart MovieFlix\n"
+                "2. Check movieflix_startup.log for details\n"
+                "3. Make sure no firewall is blocking port 8765\n"
+                "4. Check Windows Firewall settings"
+            )
+            sys.exit(1)
+        except Exception as e:
+            _startup_log(f"Failed to show error dialog: {e}")
+            sys.exit(1)
+    
+    _startup_log("✓ Backend started successfully")
+    print("✓ Backend started")
+    
+    # Extra delay to ensure backend is fully ready
+    time.sleep(1)
+    
+    print("Launching GUI...")
+    launch_gui()

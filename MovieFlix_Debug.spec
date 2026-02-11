@@ -1,8 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-MovieFlix Lite PyInstaller Configuration
-Creates a lightweight build WITHOUT VLC bundled
-Users install VLC separately from videolan.org
+MovieFlix Lite DEBUG Build Configuration
+Creates build WITH console window to see errors
 """
 import os
 import sys
@@ -12,18 +11,16 @@ block_cipher = None
 project_dir = os.path.abspath('.')
 
 print("=" * 50)
-print("  Building MovieFlix LITE (No VLC)")
-print("=" * 50)
-print("VLC will NOT be bundled.")
-print("Users must install VLC from https://www.videolan.org/")
+print("  Building MovieFlix Lite DEBUG")
+print("  Console window ENABLED for debugging")
 print("=" * 50)
 
 # Prepare datas list (NO VLC folder)
 datas_list = [
     ('backend', 'backend'),
     ('app', 'app'),
-    ('MovieFlix.ico', '.'),  # Icon in root
-    ('.env', '.'),  # Environment file
+    ('MovieFlix.ico', '.'),
+    ('.env', '.'),
 ]
 
 a = Analysis(
@@ -140,12 +137,12 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='MovieFlix',
-    debug=False,
+    name='MovieFlix_Debug',
+    debug=True,  # Enable debug mode
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    console=False,  # No console window
+    upx=False,  # Disable UPX for easier debugging
+    console=True,  # ENABLE CONSOLE WINDOW
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -161,7 +158,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
-    name='MovieFlix',
+    name='MovieFlix_Debug',
 )

@@ -42,9 +42,20 @@ echo [32m[OK][0m Dependencies installed
 REM Clean old builds
 echo.
 echo [36mStep 2/5:[0m Cleaning old builds...
-if exist build rmdir /s /q build
-if exist dist rmdir /s /q dist
-echo [32m[OK][0m Old builds cleaned
+if exist build (
+    echo Removing build folder...
+    rmdir /s /q build
+    echo [32m✓[0m build folder removed
+)
+if exist dist (
+    echo Removing dist folder...
+    rmdir /s /q dist
+    echo [32m✓[0m dist folder removed
+)
+if not exist build if not exist dist (
+    echo [32m✓[0m No old builds to clean
+)
+echo [32m[OK][0m Ready for fresh build
 
 REM Build with PyInstaller (Lite spec)
 echo.

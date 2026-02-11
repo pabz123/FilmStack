@@ -3,24 +3,10 @@ import sys
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-
-# Load environment variables
-try:
-    from dotenv import load_dotenv
-    # Load from parent directory
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-    load_dotenv(env_path)
-except ImportError:
-    pass
-
-DATABASE_PATH = os.getenv("DATABASE_PATH", "movies.db")
-# Use absolute path for database
-if not os.path.isabs(DATABASE_PATH):
-    DATABASE_PATH = os.path.join(os.path.dirname(__file__), DATABASE_PATH)
-
-DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+from backend.config import DATABASE_URL, DATABASE_PATH
 
 print(f"Database URL: {DATABASE_URL}")
+print(f"Database Path: {DATABASE_PATH}")
 
 engine = create_engine(
     DATABASE_URL,

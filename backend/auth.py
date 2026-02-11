@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import secrets
 import hashlib
 
-from database import Base, SessionLocal, engine
+from backend.database import Base, SessionLocal, engine
 
 router = APIRouter()
 security = HTTPBasic()

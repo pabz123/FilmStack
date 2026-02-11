@@ -9,9 +9,9 @@ import sys
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
-from database import SessionLocal
-from models import Movie, Series, Season, Episode
-from scanner import scan_movies, scan_series
+from backend.database import SessionLocal
+from backend.models import Movie, Series, Season, Episode
+from backend.scanner import scan_movies, scan_series
 from metadata import fetch_movie_metadata, fetch_series_metadata
 
 router = APIRouter()
@@ -36,10 +36,15 @@ def scan_library(db: Session = Depends(get_db)):
         "errors": []
     }
     
-    # Get library path - scan the root library folder directly
-    library_path = os.path.join(os.path.dirname(current_dir), "library")
+    # Use configured library path
+    library_path = str(LIBRARY_DIR)
     
     print(f"Scanning library at: {library_path}")
+    
+    # Ensure library directory exists
+    if not os.path.exists(library_path):
+        print(f"Creating library directory: {library_path}")
+        os.makedirs(library_path, exist_ok=True)
     
     # We'll scan the library folder itself for both movies and series
     movies_path = library_path

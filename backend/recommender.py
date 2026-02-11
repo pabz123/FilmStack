@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import Movie, Episode
+from backend.models import Movie, Episode
 
 
 def recommend_movies(db, limit=10):

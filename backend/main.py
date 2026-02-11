@@ -37,17 +37,36 @@ from typing import List, Any
 import sys
 import os
 
-# Add current directory to path for imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+# Add paths for both frozen and source mode
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    application_path = sys._MEIPASS
+    backend_path = os.path.join(application_path, 'backend')
+else:
+    # Running as script
+    backend_path = os.path.dirname(os.path.abspath(__file__))
+    application_path = os.path.dirname(backend_path)
+
+# Add paths
+if backend_path not in sys.path:
+    sys.path.insert(0, backend_path)
+if application_path not in sys.path:
+    sys.path.insert(0, application_path)
 
 # Import database module
-from database import SessionLocal, init_db
-from models import Movie, Series, Season, Episode
-from recommender import recommend_movies, continue_series
-from scan_endpoint import router as scan_router
-from auth import router as auth_router
+try:
+    from backend.database import SessionLocal, init_db
+    from backend.models import Movie, Series, Season, Episode
+    from backend.recommender import recommend_movies, continue_series
+    from backend.scan_endpoint import router as scan_router
+    from backend.auth import router as auth_router
+except ImportError:
+    # Fallback to relative imports (when in backend directory)
+    from database import SessionLocal, init_db
+    from models import Movie, Series, Season, Episode
+    from recommender import recommend_movies, continue_series
+    from scan_endpoint import router as scan_router
+    from auth import router as auth_router
 
 
 # Lifespan handler for startup/shutdown

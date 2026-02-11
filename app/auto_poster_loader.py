@@ -9,6 +9,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 import requests
 import time
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -18,7 +19,14 @@ load_dotenv(env_path)
 TMDB_API_KEY = os.getenv('TMDB_API_KEY', '')
 BASE_URL = "https://api.themoviedb.org/3"
 IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
-API_URL = 'http://localhost:8765'
+
+# Get dynamic API URL
+try:
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from backend.config import BACKEND_URL
+    API_URL = BACKEND_URL
+except ImportError:
+    API_URL = 'http://localhost:8765'
 
 
 class AutoPosterLoader(QThread):

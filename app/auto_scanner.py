@@ -119,7 +119,12 @@ class AutoScanManager:
     def __init__(self, parent_window):
         self.parent_window = parent_window
         self.scan_worker = None
-        self.api_url = "http://localhost:8765"
+        # Get dynamic API URL
+        try:
+            from backend.config import BACKEND_URL
+            self.api_url = BACKEND_URL
+        except ImportError:
+            self.api_url = "http://localhost:8765"
     
     def start_background_scan(self):
         """Start background scan with user permission"""
