@@ -68,11 +68,24 @@ class LoginDialog(QDialog):
         self.login_btn.clicked.connect(self.on_login)
         card_layout.addWidget(self.login_btn)
         
-        # Security notice (removed default credentials)
-        help_text = QLabel("Contact admin if you forgot your password")
+        # Help text with GitHub link
+        help_container = QWidget()
+        help_layout = QHBoxLayout(help_container)
+        help_layout.setContentsMargins(0, 0, 0, 0)
+        help_layout.setSpacing(5)
+        
+        help_text = QLabel("Need help? Report issues on GitHub:")
         help_text.setStyleSheet("color: #737373; font-size: 13px;")
-        help_text.setAlignment(Qt.AlignCenter)
-        card_layout.addWidget(help_text)
+        help_layout.addWidget(help_text)
+        
+        # Clickable link
+        github_link = QLabel('<a href="https://github.com/pabz123/FilmStack/issues" style="color: #E50914; text-decoration: none;">Click here</a>')
+        github_link.setStyleSheet("font-size: 13px;")
+        github_link.setOpenExternalLinks(True)
+        help_layout.addWidget(github_link)
+        
+        help_layout.addStretch()
+        card_layout.addWidget(help_container, alignment=Qt.AlignCenter)
         
         # Register link
         register_btn = QPushButton("New user? Register here")

@@ -44,8 +44,9 @@ VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
 # Regular expression for episode pattern matching (S01E01, S1E1, etc.)
 EPISODE_PATTERN = re.compile(r"(S\d+E\d+)", re.IGNORECASE)
 
-# Minimum video duration in seconds (20 minutes = 1200 seconds)
-MIN_VIDEO_DURATION = 1200  # 20 minutes
+# Minimum video file size (30 MB) - simple size filter, no duration checking
+MIN_VIDEO_SIZE = 30 * 1024 * 1024  # 30 MB
+MIN_VIDEO_DURATION = 1200  # Legacy constant, not used for filtering anymore
 
 # Folders to exclude from scanning (system, temp, hidden)
 EXCLUDED_FOLDERS = {
@@ -103,33 +104,25 @@ def should_skip_folder(folder_path):
 
 def get_video_duration(video_path):
     """
-    Get the duration of a video file in seconds.
-    Uses file size estimation for speed.
-    LENIENT: Prefers false positives over false negatives.
+    Check if video file meets minimum size requirement.
+    Simple size-based filter: > 30MB
     
     Args:
         video_path (str): Path to the video file
         
     Returns:
-        float: Duration in seconds, or MIN_VIDEO_DURATION if cannot be determined
+        float: Returns MIN_VIDEO_DURATION if file > 30MB, else 0
     """
     try:
         file_size = os.path.getsize(video_path)
         
-        # Very lenient filter: Only skip extremely small files (< 50MB)
-        # This ensures we don't miss any actual movies
-        if file_size < 50 * 1024 * 1024:  # 50 MB
-            return 0
-        
-        # Estimate duration based on file size
-        # Use very conservative bitrate estimate (low bitrate = higher duration estimate)
-        # Average bitrate for videos: 1-4 Mbps
-        # Use 1.5 Mbps (very conservative) = ~190 KB/s
-        # This means we OVER-estimate duration to avoid false negatives
-        estimated_duration = file_size / (190 * 1024)  # seconds
-        return estimated_duration
+        # Simple rule: Include any video larger than 30MB
+        if file_size > 30 * 1024 * 1024:  # 30 MB
+            return MIN_VIDEO_DURATION  # Return valid duration
+        else:
+            return 0  # Too small, skip
     except Exception as e:
-        # If we can't check, assume it's valid (better safe than sorry)
+        # If we can't check, assume it's valid
         return MIN_VIDEO_DURATION
 
 
@@ -227,14 +220,14 @@ def scan_movies(movies_dir):
                             skipped_episodes += 1
                             continue
                         
-                        # Check duration (20+ minutes)
+                        # Simple size check: > 30MB
                         try:
-                            duration = get_video_duration(full_path)
-                            if duration < MIN_VIDEO_DURATION:
+                            file_size = os.path.getsize(full_path)
+                            if file_size <= MIN_VIDEO_SIZE:
                                 skipped_short += 1
                                 continue
-                        except Exception as e:
-                            # If can't check duration, include it anyway
+                        except Exception:
+                            # If can't check size, include it anyway
                             pass
                         
                         title = os.path.splitext(file)[0]
@@ -264,9 +257,9 @@ def scan_movies(movies_dir):
         print(f"  Error scanning {movies_dir}: {e}")
     
     print(f"  📊 Scanned {scanned_files} video files")
-    print(f"  ✓ Found {len(movies)} movies")
+    print(f"  ✓ Found {len(movies)} movies (> 30MB)")
     print(f"  ⏭️  Skipped {skipped_episodes} episodes")
-    print(f"  ⏱️  Skipped {skipped_short} short videos")
+    print(f"  📏 Skipped {skipped_short} small files (< 30MB)")
     if errors > 0:
         print(f"  ⚠️  {errors} errors (permission denied)")
 

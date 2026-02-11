@@ -864,19 +864,19 @@ class AdvancedMovieLibrary(QMainWindow):
             print("Starting TMDB metadata fetch...")
             QTimer.singleShot(1000, self.start_tmdb_fetch)
         else:
-            self.show_scan_status("⚠ No videos found (20+ minutes required)")
+            self.show_scan_status("⚠ No videos found (> 30MB required)")
             QMessageBox.warning(
                 self,
                 "No Content Found",
                 "❌ <b>No movies or series were found on your PC.</b><br><br>"
                 "<b>Possible reasons:</b><br>"
-                "• No video files 20+ minutes long<br>"
+                "• No video files larger than 30MB<br>"
                 "• Videos in excluded folders (Windows, Program Files)<br>"
                 "• Permission issues on some drives<br><br>"
                 "<b>💡 Tips:</b><br>"
                 "• Check the console for 'Skipped' messages<br>"
                 "• Ensure videos are in accessible folders<br>"
-                "• Verify videos are actually 20+ minutes<br>"
+                "• Verify video files are larger than 30MB<br>"
             )
     
     def on_scan_error(self, error_msg):
