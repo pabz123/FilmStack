@@ -218,7 +218,7 @@ def scan_movies(movies_dir):
                         full_path = os.path.join(root, file)
                         
                         # Check if it's a series episode - if so, skip it
-                        if is_episode(file):
+                        if is_episode(file, root):
                             skipped_episodes += 1
                             print(f"    ⏭️ Skipping episode: {file}")
                             continue
@@ -313,7 +313,7 @@ def scan_series(series_dir):
                         full_path = os.path.join(root, file)
                         
                         # Check if it's a series episode
-                        if is_episode(file):
+                        if is_episode(file, root):
                             # Check file size
                             try:
                                 file_size = os.path.getsize(full_path)
@@ -470,7 +470,7 @@ def scan_entire_pc(progress_callback=None):
                     full_path = os.path.join(root, file)
                     
                     # Determine if it's a series or movie
-                    if is_episode(file):
+                    if is_episode(file, root):
                         # It's a series episode
                         episode_data = parse_episode(file, root)
                         series_title = episode_data['series_title']
@@ -506,29 +506,48 @@ def scan_entire_pc(progress_callback=None):
     }
 
 
-def is_episode(filename):
+def is_episode(filename, folder_path=None):
     """
-    Check if a filename appears to be a TV episode.
+    Check if a file appears to be a TV episode.
+    Uses BOTH filename patterns AND folder structure for detection.
     
     Args:
         filename (str): The filename to check
+        folder_path (str): Optional folder path for context
         
     Returns:
         bool: True if appears to be an episode, False otherwise
     """
-    # Check for episode patterns (S01E01, S1E1, etc.)
+    filename_lower = filename.lower()
+    
+    # Check for episode patterns in filename (S01E01, S1E1, etc.)
     if EPISODE_PATTERN.search(filename):
         return True
     
-    # Check for common series indicators
+    # Check for common series indicators in filename
     episode_indicators = [
-        'episode', 'ep ', ' ep', 'e0', 'e1', 'e2', 'e3', 'e4', 'e5', 
-        'e6', 'e7', 'e8', 'e9', 'season', ' s0', ' s1', ' s2', ' s3',
-        '.s0', '.s1', '.s2', '.s3', 'part', 'pt'
+        'episode', 'ep.', ' ep', 'e01', 'e02', 'e03', 'e04', 'e05', 
+        'e06', 'e07', 'e08', 'e09', 'season', ' s0', ' s1', ' s2', ' s3',
+        '.s0', '.s1', '.s2', '.s3', 'part', 'pt.', 'chapter'
     ]
     
-    filename_lower = filename.lower()
-    return any(indicator in filename_lower for indicator in episode_indicators)
+    if any(indicator in filename_lower for indicator in episode_indicators):
+        return True
+    
+    # SMART: Check folder path for series indicators
+    if folder_path:
+        folder_path_lower = folder_path.lower()
+        folder_indicators = [
+            'season', 'series', 'episodes', 'tv show', 'tv series',
+            '\\s01\\', '\\s02\\', '\\s03\\', '\\s1\\', '\\s2\\', '\\s3\\',
+            '/s01/', '/s02/', '/s03/', '/s1/', '/s2/', '/s3/',
+            'complete series', 'box set'
+        ]
+        
+        if any(indicator in folder_path_lower for indicator in folder_indicators):
+            return True
+    
+    return False
 
 
 def parse_episode(filename, folder_path):
