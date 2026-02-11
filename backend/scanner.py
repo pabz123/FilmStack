@@ -105,28 +105,31 @@ def get_video_duration(video_path):
     """
     Get the duration of a video file in seconds.
     Uses file size estimation for speed.
+    LENIENT: Prefers false positives over false negatives.
     
     Args:
         video_path (str): Path to the video file
         
     Returns:
-        float: Duration in seconds, or 0 if cannot be determined
+        float: Duration in seconds, or MIN_VIDEO_DURATION if cannot be determined
     """
     try:
         file_size = os.path.getsize(video_path)
         
-        # Quick filter: If file is very small (< 100MB), likely not 20+ minutes
-        if file_size < 100 * 1024 * 1024:  # 100 MB
+        # Very lenient filter: Only skip extremely small files (< 50MB)
+        # This ensures we don't miss any actual movies
+        if file_size < 50 * 1024 * 1024:  # 50 MB
             return 0
         
         # Estimate duration based on file size
-        # Average bitrate for videos: ~2-3 Mbps = 250-375 KB/s
-        # Use conservative 3 Mbps estimate
-        estimated_duration = file_size / (375 * 1024)  # seconds
+        # Use very conservative bitrate estimate (low bitrate = higher duration estimate)
+        # Average bitrate for videos: 1-4 Mbps
+        # Use 1.5 Mbps (very conservative) = ~190 KB/s
+        # This means we OVER-estimate duration to avoid false negatives
+        estimated_duration = file_size / (190 * 1024)  # seconds
         return estimated_duration
     except Exception as e:
-        print(f"⚠ Could not check duration for {video_path}: {e}")
-        # If we can't check, assume it's valid to avoid false negatives
+        # If we can't check, assume it's valid (better safe than sorry)
         return MIN_VIDEO_DURATION
 
 

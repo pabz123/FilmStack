@@ -851,22 +851,10 @@ class AdvancedMovieLibrary(QMainWindow):
         drives_scanned = results.get('drives_scanned', [])
         
         if movies_added > 0 or series_added > 0:
-            # Show detailed results
+            # Update status bar
             drives_str = ', '.join(drives_scanned) if drives_scanned else "PC"
             self.show_scan_status(
-                f"✓ Scan complete! Found {movies_added} movies, {series_added} series "
-                f"({episodes_added} episodes) on {drives_str}"
-            )
-            
-            # Show success dialog
-            QMessageBox.information(
-                self,
-                "Scan Complete!",
-                f"Successfully scanned your PC!\n\n"
-                f"📽️ Movies added: {movies_added}\n"
-                f"📺 Series added: {series_added}\n"
-                f"📀 Drives scanned: {', '.join(drives_scanned)}\n\n"
-                f"Fetching posters from TMDB..."
+                f"✓ Scan complete! Found {movies_added} movies, {series_added} series on {drives_str}"
             )
             
             print("Loading content after full PC scan...")
@@ -876,16 +864,19 @@ class AdvancedMovieLibrary(QMainWindow):
             print("Starting TMDB metadata fetch...")
             QTimer.singleShot(1000, self.start_tmdb_fetch)
         else:
-            self.show_scan_status("⚠ No videos found. Make sure video files are 20+ minutes long.")
+            self.show_scan_status("⚠ No videos found (20+ minutes required)")
             QMessageBox.warning(
                 self,
                 "No Content Found",
-                "No movies or series were found on your PC.\n\n"
-                "Possible reasons:\n"
-                "• No video files 20+ minutes long\n"
-                "• Videos in system folders (excluded)\n"
-                "• Permission issues\n\n"
-                "Try adding videos to a personal folder."
+                "❌ <b>No movies or series were found on your PC.</b><br><br>"
+                "<b>Possible reasons:</b><br>"
+                "• No video files 20+ minutes long<br>"
+                "• Videos in excluded folders (Windows, Program Files)<br>"
+                "• Permission issues on some drives<br><br>"
+                "<b>💡 Tips:</b><br>"
+                "• Check the console for 'Skipped' messages<br>"
+                "• Ensure videos are in accessible folders<br>"
+                "• Verify videos are actually 20+ minutes<br>"
             )
     
     def on_scan_error(self, error_msg):

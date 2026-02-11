@@ -67,7 +67,9 @@ class LoginDialog(QDialog):
         self.login_btn.setStyleSheet("QPushButton { background-color: #E50914; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; } QPushButton:hover { background-color: #F40612; }")
         self.login_btn.clicked.connect(self.on_login)
         card_layout.addWidget(self.login_btn)
-        help_text = QLabel("Default: admin / admin123")
+        
+        # Security notice (removed default credentials)
+        help_text = QLabel("Contact admin if you forgot your password")
         help_text.setStyleSheet("color: #737373; font-size: 13px;")
         help_text.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(help_text)
@@ -123,7 +125,9 @@ class LoginDialog(QDialog):
                 
             else:
                 print(f"Login failed: {response.status_code}")
-                QMessageBox.warning(self, 'Login Failed', 'Invalid credentials.\n\nDefault: admin / admin123')
+                QMessageBox.warning(self, 'Login Failed', 
+                                   'Invalid username or password.\n\n'
+                                   'Please check your credentials and try again.')
                 self.password_input.clear()
                 self.password_input.setFocus()
                 self.login_btn.setEnabled(True)
