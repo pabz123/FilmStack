@@ -55,7 +55,11 @@ a = Analysis(
         'fastapi.exceptions',
         'fastapi.params',
         'fastapi.security',
+        'fastapi.dependencies',
+        'fastapi.dependencies.utils',
+        # Multipart (critical for FastAPI forms)
         'multipart',
+        'multipart.multipart',
         'python_multipart',
         # Starlette (FastAPI dependency)
         'starlette',
