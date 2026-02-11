@@ -104,9 +104,12 @@ AUTH_CREDENTIALS = None
 
 class BackgroundScanner(QThread):
     """
-    Background thread for scanning library without freezing the UI.
+    Background thread for scanning entire PC for movies/series.
     
-    This thread performs the library scan operation in the background,
+    Scans all drives (C:, D:, E:, etc.) for video files 20+ minutes long.
+    Automatically skips system folders (Windows, Program Files, etc.)
+    
+    This thread performs the full PC scan operation in the background,
     allowing the main UI to remain responsive. It reports progress
     and results back to the main thread through Qt signals.
     
@@ -124,19 +127,22 @@ class BackgroundScanner(QThread):
     scan_error = pyqtSignal(str)
     
     def run(self):
-        """Run scan in background"""
+        """Run full PC scan in background"""
         try:
-            print("Background scan starting...")
-            response = requests.post(f"{API_URL}/library/scan", timeout=180)
+            print("Full PC scan starting...")
+            # Increased timeout to 600 seconds (10 minutes) for full PC scan
+            response = requests.post(f"{API_URL}/library/scan", timeout=600)
             
             if response.status_code == 200:
                 results = response.json()
-                print(f"Background scan complete: {results}")
+                print(f"Full PC scan complete: {results}")
                 self.scan_complete.emit(results)
             else:
                 self.scan_error.emit(f"Scan failed with status: {response.status_code}")
+        except requests.exceptions.Timeout:
+            self.scan_error.emit("Scan timeout - PC scan took too long. Try again or scan specific folders.")
         except Exception as e:
-            print(f"Background scan error: {e}")
+            print(f"Full PC scan error: {e}")
             import traceback
             traceback.print_exc()
             self.scan_error.emit(str(e))
@@ -801,19 +807,39 @@ class AdvancedMovieLibrary(QMainWindow):
 
     
     def start_background_scan(self):
-        """Start scanning in background thread"""
+        """Start scanning entire PC in background thread"""
         if self.scanner and self.scanner.isRunning():
             print("Scan already in progress")
+            QMessageBox.information(self, "Scan in Progress", 
+                                   "A scan is already running. Please wait for it to complete.")
             return
         
-        print("Starting background scan thread...")
+        # Confirm with user
+        reply = QMessageBox.question(
+            self,
+            "Scan Entire PC?",
+            "This will scan all drives (C:\\, D:\\, etc.) for movies and series.\n\n"
+            "⏱️ This may take 5-15 minutes depending on:\n"
+            "  • Number of drives\n"
+            "  • Amount of files\n\n"
+            "✓ Only finds videos 20+ minutes\n"
+            "✓ Automatically skips system folders\n\n"
+            "Continue?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+        
+        if reply == QMessageBox.No:
+            return
+        
+        print("Starting full PC scan thread...")
         self.scanner = BackgroundScanner()
         self.scanner.scan_complete.connect(self.on_scan_complete)
         self.scanner.scan_error.connect(self.on_scan_error)
         self.scanner.start()
         
-        # Show a subtle message
-        self.show_scan_status("Scanning library in background... UI remains responsive")
+        # Show scanning message
+        self.show_scan_status("🔍 Scanning entire PC... This may take several minutes...")
     
     def on_scan_complete(self, results):
         """Handle scan completion"""
@@ -821,18 +847,46 @@ class AdvancedMovieLibrary(QMainWindow):
         
         movies_added = results.get('movies_added', 0)
         series_added = results.get('series_added', 0)
+        episodes_added = results.get('episodes_added', 0)
+        drives_scanned = results.get('drives_scanned', [])
         
         if movies_added > 0 or series_added > 0:
-            self.show_scan_status(f"✓ Scan complete: {movies_added} movies, {series_added} series added")
-            print("Loading content after background scan...")
+            # Show detailed results
+            drives_str = ', '.join(drives_scanned) if drives_scanned else "PC"
+            self.show_scan_status(
+                f"✓ Scan complete! Found {movies_added} movies, {series_added} series "
+                f"({episodes_added} episodes) on {drives_str}"
+            )
+            
+            # Show success dialog
+            QMessageBox.information(
+                self,
+                "Scan Complete!",
+                f"Successfully scanned your PC!\n\n"
+                f"📽️ Movies added: {movies_added}\n"
+                f"📺 Series added: {series_added}\n"
+                f"📀 Drives scanned: {', '.join(drives_scanned)}\n\n"
+                f"Fetching posters from TMDB..."
+            )
+            
+            print("Loading content after full PC scan...")
             self.load_all_content()
             
-            # Start TMDB metadata fetch for newly scanned movies
-            print("Starting TMDB metadata fetch for scanned movies...")
-            QTimer.singleShot(2000, self.start_tmdb_fetch)
+            # Start TMDB metadata fetch for newly scanned content
+            print("Starting TMDB metadata fetch...")
+            QTimer.singleShot(1000, self.start_tmdb_fetch)
         else:
-            self.show_scan_status("⚠ No content found. Add video files to library/ folder")
-            self._show_empty_state()
+            self.show_scan_status("⚠ No videos found. Make sure video files are 20+ minutes long.")
+            QMessageBox.warning(
+                self,
+                "No Content Found",
+                "No movies or series were found on your PC.\n\n"
+                "Possible reasons:\n"
+                "• No video files 20+ minutes long\n"
+                "• Videos in system folders (excluded)\n"
+                "• Permission issues\n\n"
+                "Try adding videos to a personal folder."
+            )
     
     def on_scan_error(self, error_msg):
         """Handle scan error"""
@@ -1539,7 +1593,7 @@ class AdvancedMovieLibrary(QMainWindow):
         layout.addWidget(library_desc)
         
         # Scan library button
-        scan_library_btn = QPushButton("📁 Rescan Library Folder")
+        scan_library_btn = QPushButton("🔍 Scan Entire PC for Movies/Series")
         scan_library_btn.setStyleSheet("""
             QPushButton {
                 background-color: #444;
@@ -2134,7 +2188,7 @@ class AdvancedMovieLibrary(QMainWindow):
         menu.addAction(add_folder_action)
         
         # Rescan action
-        rescan_action = QAction("🔄 Rescan Library", self)
+        rescan_action = QAction("🔄 Scan Entire PC", self)
         rescan_action.triggered.connect(self.start_background_scan)
         menu.addAction(rescan_action)
         

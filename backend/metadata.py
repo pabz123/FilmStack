@@ -26,48 +26,49 @@ if not TMDB_API_KEY or TMDB_API_KEY == "YOUR_API_KEY":
     print("=" * 60)
 
 
-def fetch_movie_metadata(title):
-    """Fetch movie metadata with poster URL"""
+def fetch_movie_metadata(title, retries=3):
+    """Fetch movie metadata with poster URL (with retry logic)"""
     if not TMDB_API_KEY or TMDB_API_KEY == "YOUR_API_KEY":
-        print(f"Skipping metadata for '{title}' - No API key")
         return None
     
-    try:
-        print(f"Fetching metadata for movie: {title}")
-        r = requests.get(
-            f"{BASE_URL}/search/movie",
-            params={"api_key": TMDB_API_KEY, "query": title},
-            timeout=10
-        )
-        r.raise_for_status()
-        data = r.json()
-        
-        if data.get("results") and len(data["results"]) > 0:
-            result = data["results"][0]
+    for attempt in range(retries):
+        try:
+            r = requests.get(
+                f"{BASE_URL}/search/movie",
+                params={"api_key": TMDB_API_KEY, "query": title},
+                timeout=10
+            )
+            r.raise_for_status()
+            data = r.json()
             
-            # Add full poster URL
-            if result.get("poster_path"):
-                result["poster_url"] = f"{IMAGE_BASE_URL}{result['poster_path']}"
+            if data.get("results") and len(data["results"]) > 0:
+                result = data["results"][0]
+                
+                # Add full poster URL
+                if result.get("poster_path"):
+                    result["poster_url"] = f"{IMAGE_BASE_URL}{result['poster_path']}"
+                else:
+                    result["poster_url"] = None
+                
+                # Add backdrop URL
+                if result.get("backdrop_path"):
+                    result["backdrop_url"] = f"https://image.tmdb.org/t/p/w1280{result['backdrop_path']}"
+                else:
+                    result["backdrop_url"] = None
+                
+                return result
             else:
-                result["poster_url"] = None
-            
-            # Add backdrop URL
-            if result.get("backdrop_path"):
-                result["backdrop_url"] = f"https://image.tmdb.org/t/p/w1280{result['backdrop_path']}"
-            else:
-                result["backdrop_url"] = None
-            
-            print(f"  ✓ Found metadata for: {title}")
-            if result.get("poster_url"):
-                print(f"    Poster: {result['poster_url']}")
-            
-            return result
-        else:
-            print(f"  ✗ No metadata found for: {title}")
+                return None
+        except requests.exceptions.Timeout:
+            if attempt < retries - 1:
+                continue
             return None
-    except Exception as e:
-        print(f"Error fetching movie metadata for '{title}': {str(e)}")
-        return None
+        except Exception as e:
+            if attempt < retries - 1:
+                continue
+            return None
+    
+    return None
 
 
 def fetch_series_metadata(title):

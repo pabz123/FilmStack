@@ -27,170 +27,191 @@ def get_db():
 
 @router.post("/scan")
 def scan_library(db: Session = Depends(get_db)):
-    """Scan library folder and add content to database"""
+    """Scan entire PC for movies and series (20+ minutes)"""
     
     results = {
         "movies_added": 0,
         "series_added": 0,
         "episodes_added": 0,
-        "errors": []
+        "errors": [],
+        "drives_scanned": []
     }
     
-    # Use configured library path
-    library_path = str(LIBRARY_DIR)
+    print("\n" + "="*50)
+    print("Starting Full PC Scan")
+    print("Looking for videos 20+ minutes")
+    print("="*50 + "\n")
     
-    print(f"Scanning library at: {library_path}")
+    # Import scanner functions
+    from backend.scanner import get_all_drives, scan_movies, scan_series
     
-    # Ensure library directory exists
-    if not os.path.exists(library_path):
-        print(f"Creating library directory: {library_path}")
-        os.makedirs(library_path, exist_ok=True)
+    # Get all available drives
+    drives = get_all_drives()
+    print(f"Found drives: {', '.join(drives)}")
     
-    # We'll scan the library folder itself for both movies and series
-    movies_path = library_path
-    series_path = library_path
+    all_movies = []
+    all_series = {}
     
-    # Scan movies
-    if os.path.exists(movies_path):
+    # Scan each drive
+    for drive in drives:
         try:
-            print("\n=== Scanning Movies ===")
-            movies_data = scan_movies(movies_path)
-            print(f"Found {len(movies_data)} movie files")
+            print(f"\n📀 Scanning drive: {drive}")
+            results["drives_scanned"].append(drive)
             
-            for movie_data in movies_data:
-                # Check if already exists
-                existing = db.query(Movie).filter(Movie.path == movie_data["path"]).first()
-                if existing:
-                    print(f"Skipping existing movie: {movie_data['title']}")
-                    continue
-                
-                # Fetch metadata
-                print(f"Processing movie: {movie_data['title']}")
-                metadata = fetch_movie_metadata(movie_data["title"])
-                
-                # Create movie
-                movie = Movie(
-                    title=movie_data["title"],
-                    path=movie_data["path"],
-                    overview=metadata.get("overview") if metadata else None,
-                    rating=metadata.get("vote_average") if metadata else None,
-                    poster=metadata.get("poster_url") if metadata else None  # Full URL now
-                )
-                db.add(movie)
-                results["movies_added"] += 1
-                print(f"  ✓ Added: {movie_data['title']}")
-                if metadata and metadata.get("poster_url"):
-                    print(f"    Poster: {metadata['poster_url'][:50]}...")
+            # Scan for movies
+            movies_data = scan_movies(drive)
+            all_movies.extend(movies_data)
+            print(f"  ✓ Found {len(movies_data)} movies on {drive}")
             
-            db.commit()
-            print(f"Movies scan complete: {results['movies_added']} added")
-        except Exception as e:
-            error_msg = f"Movies scan error: {str(e)}"
-            print(error_msg)
-            results["errors"].append(error_msg)
-            import traceback
-            traceback.print_exc()
-    else:
-        print(f"Movies path does not exist: {movies_path}")
-    
-    # Scan series
-    if os.path.exists(series_path):
-        try:
-            print("\n=== Scanning Series ===")
-            series_data = scan_series(series_path)
-            print(f"Found {len(series_data)} episode files")
-            
-            # Group by series
-            series_dict = {}
-            for ep_data in series_data:
-                series_title = ep_data["series_title"]
-                if series_title not in series_dict:
-                    series_dict[series_title] = {}
-                
-                season_num = ep_data["season_number"]
-                if season_num not in series_dict[series_title]:
-                    series_dict[series_title][season_num] = []
-                
-                series_dict[series_title][season_num].append(ep_data)
-            
-            print(f"Grouped into {len(series_dict)} series")
-            
-            # Add to database
-            for series_title, seasons in series_dict.items():
-                print(f"\nProcessing series: {series_title}")
-                
-                # Check if series exists
-                series_obj = db.query(Series).filter(Series.title == series_title).first()
-                
-                if not series_obj:
-                    # Fetch metadata
-                    metadata = fetch_series_metadata(series_title)
-                    
-                    series_obj = Series(
-                        title=series_title,
-                        overview=metadata.get("overview") if metadata else None,
-                        poster=metadata.get("poster_url") if metadata else None  # Full URL now
-                    )
-                    db.add(series_obj)
-                    db.flush()
-                    results["series_added"] += 1
-                    print(f"  ✓ Added series: {series_title}")
-                    if metadata and metadata.get("poster_url"):
-                        print(f"    Poster: {metadata['poster_url'][:50]}...")
+            # Scan for series
+            series_data = scan_series(drive)
+            # Merge series data
+            for series_title, episodes in series_data.items():
+                if series_title in all_series:
+                    all_series[series_title].extend(episodes)
                 else:
-                    print(f"  Series already exists: {series_title}")
+                    all_series[series_title] = episodes
+            print(f"  ✓ Found {len(series_data)} series on {drive}")
+            
+        except PermissionError as e:
+            error_msg = f"Permission denied for {drive}: {str(e)}"
+            print(f"  ⚠️  {error_msg}")
+            results["errors"].append(error_msg)
+        except Exception as e:
+            error_msg = f"Error scanning {drive}: {str(e)}"
+            print(f"  ❌ {error_msg}")
+            results["errors"].append(error_msg)
+    
+    print(f"\n📊 Scan Complete:")
+    print(f"  Total movies found: {len(all_movies)}")
+    print(f"  Total series found: {len(all_series)}")
+    
+    # Process movies
+    print("\n" + "="*50)
+    print("Adding Movies to Database")
+    print("="*50)
+    
+    for movie_data in all_movies:
+        try:
+            # Check if already exists
+            existing = db.query(Movie).filter(Movie.path == movie_data["path"]).first()
+            if existing:
+                continue
+            
+            # Fetch metadata
+            metadata = fetch_movie_metadata(movie_data["title"])
+            
+            # Create movie
+            movie = Movie(
+                title=movie_data["title"],
+                path=movie_data["path"],
+                overview=metadata.get("overview") if metadata else None,
+                rating=metadata.get("vote_average") if metadata else None,
+                poster=metadata.get("poster_url") if metadata else None
+            )
+            db.add(movie)
+            results["movies_added"] += 1
+            
+            if results["movies_added"] % 10 == 0:
+                print(f"  Added {results['movies_added']} movies...")
                 
-                # Add seasons and episodes
-                for season_num, episodes in seasons.items():
-                    print(f"  Processing Season {season_num} ({len(episodes)} episodes)")
-                    
-                    # Check if season exists
-                    season_obj = db.query(Season).filter(
-                        Season.series_id == series_obj.id,
-                        Season.season_number == season_num
+        except Exception as e:
+            error_msg = f"Error adding movie {movie_data['title']}: {str(e)}"
+            results["errors"].append(error_msg)
+    
+    # Commit movies
+    try:
+        db.commit()
+        print(f"✓ Added {results['movies_added']} movies to database")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error committing movies: {e}")
+    
+    # Process series
+    print("\n" + "="*50)
+    print("Adding Series to Database")
+    print("="*50)
+    
+    for series_title, episodes_list in all_series.items():
+        try:
+            # Check if series exists
+            series_obj = db.query(Series).filter(Series.title == series_title).first()
+            
+            if not series_obj:
+                # Fetch metadata
+                metadata = fetch_series_metadata(series_title)
+                
+                series_obj = Series(
+                    title=series_title,
+                    overview=metadata.get("overview") if metadata else None,
+                    poster=metadata.get("poster_url") if metadata else None
+                )
+                db.add(series_obj)
+                db.flush()
+                results["series_added"] += 1
+            
+            # Group episodes by season
+            seasons_dict = {}
+            for ep_data in episodes_list:
+                season_num = ep_data["season_number"]
+                if season_num not in seasons_dict:
+                    seasons_dict[season_num] = []
+                seasons_dict[season_num].append(ep_data)
+            
+            # Add seasons and episodes
+            for season_num, episodes in seasons_dict.items():
+                # Check if season exists
+                season_obj = db.query(Season).filter(
+                    Season.series_id == series_obj.id,
+                    Season.season_number == season_num
+                ).first()
+                
+                if not season_obj:
+                    season_obj = Season(
+                        series_id=series_obj.id,
+                        season_number=season_num
+                    )
+                    db.add(season_obj)
+                    db.flush()
+                
+                # Add episodes
+                for ep_data in episodes:
+                    existing_ep = db.query(Episode).filter(
+                        Episode.path == ep_data["path"]
                     ).first()
                     
-                    if not season_obj:
-                        season_obj = Season(
-                            series_id=series_obj.id,
-                            season_number=season_num
+                    if not existing_ep:
+                        episode = Episode(
+                            season_id=season_obj.id,
+                            episode_number=ep_data["episode_number"],
+                            path=ep_data["path"],
+                            title=f"Episode {ep_data['episode_number']}"
                         )
-                        db.add(season_obj)
-                        db.flush()
-                        print(f"    Added Season {season_num}")
-                    
-                    # Add episodes
-                    for ep_data in episodes:
-                        existing_ep = db.query(Episode).filter(
-                            Episode.path == ep_data["path"]
-                        ).first()
+                        db.add(episode)
+                        results["episodes_added"] += 1
                         
-                        if not existing_ep:
-                            episode = Episode(
-                                season_id=season_obj.id,
-                                episode_number=ep_data["episode_number"],
-                                path=ep_data["path"],
-                                title=f"Episode {ep_data['episode_number']}"
-                            )
-                            db.add(episode)
-                            results["episodes_added"] += 1
-                            print(f"      Added E{ep_data['episode_number']:02d}")
-            
-            db.commit()
-            print(f"\nSeries scan complete:")
-            print(f"  Series added: {results['series_added']}")
-            print(f"  Episodes added: {results['episodes_added']}")
         except Exception as e:
-            error_msg = f"Series scan error: {str(e)}"
-            print(error_msg)
+            error_msg = f"Error processing series {series_title}: {str(e)}"
             results["errors"].append(error_msg)
-            import traceback
-            traceback.print_exc()
-    else:
-        print(f"Series path does not exist: {series_path}")
     
-    print("\n=== Scan Complete ===")
-    print(f"Results: {results}")
+    # Commit series
+    try:
+        db.commit()
+        print(f"✓ Added {results['series_added']} series, {results['episodes_added']} episodes")
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error committing series: {e}")
+    
+    print("\n" + "="*50)
+    print("Scan Summary")
+    print("="*50)
+    print(f"Drives scanned: {', '.join(results['drives_scanned'])}")
+    print(f"Movies added: {results['movies_added']}")
+    print(f"Series added: {results['series_added']}")
+    print(f"Episodes added: {results['episodes_added']}")
+    print(f"Errors: {len(results['errors'])}")
+    print("="*50 + "\n")
+    
     return results
 
 

@@ -4,14 +4,17 @@ MovieFlix File System Scanner
 
 This module handles scanning of file systems to discover movies and TV series.
 It intelligently parses filenames, extracts metadata, and handles various
-folder structures.
+folder structures. Can scan entire PC or specific directories.
 
 Features:
+- Full PC scan (all drives)
 - Recursive directory scanning
 - Multiple video format support
 - Episode number extraction (S01E01, Episode 1, etc.)
 - Title cleaning (removes quality tags, years, etc.)
+- Duration filtering (20+ minutes)
 - Flexible folder structures (flat or nested)
+- Smart folder exclusion (system, temp, hidden folders)
 
 Supported Video Formats:
     .mp4, .mkv, .avi, .mov, .flv, .wmv, .webm
@@ -33,6 +36,7 @@ Folder Structures Supported:
 
 import os
 import re
+import string
 
 # Supported video file extensions
 VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
@@ -40,8 +44,61 @@ VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
 # Regular expression for episode pattern matching (S01E01, S1E1, etc.)
 EPISODE_PATTERN = re.compile(r"(S\d+E\d+)", re.IGNORECASE)
 
-# Minimum movie duration in seconds (1 hour = 3600 seconds)
-MIN_MOVIE_DURATION = 3600
+# Minimum video duration in seconds (20 minutes = 1200 seconds)
+MIN_VIDEO_DURATION = 1200  # 20 minutes
+
+# Folders to exclude from scanning (system, temp, hidden)
+EXCLUDED_FOLDERS = {
+    "windows", "program files", "program files (x86)", "programdata",
+    "$recycle.bin", "system volume information", "recovery", 
+    "windows.old", "temp", "tmp", "cache", "appdata", "application data",
+    "perflogs", "msocache", "$windows.~bt", "intel", "nvidia", "amd",
+    "drivers", "boot", "config.msi", "documents and settings",
+    "hiberfil.sys", "pagefile.sys", "swapfile.sys"
+}
+
+
+def get_all_drives():
+    """
+    Get all available drives on Windows.
+    
+    Returns:
+        list: List of drive letters (e.g., ['C:\\', 'D:\\'])
+    """
+    drives = []
+    for letter in string.ascii_uppercase:
+        drive = f"{letter}:\\"
+        if os.path.exists(drive):
+            drives.append(drive)
+    return drives
+
+
+def should_skip_folder(folder_path):
+    """
+    Check if a folder should be skipped during scanning.
+    Skips system folders, hidden folders, and common exclusions.
+    
+    Args:
+        folder_path: Path to folder
+        
+    Returns:
+        bool: True if should skip, False otherwise
+    """
+    folder_name = os.path.basename(folder_path).lower()
+    
+    # Skip hidden folders
+    if folder_name.startswith('.') or folder_name.startswith('$'):
+        return True
+    
+    # Skip excluded folders
+    if folder_name in EXCLUDED_FOLDERS:
+        return True
+    
+    # Skip folders with certain patterns
+    if folder_name.startswith('~') or folder_name.endswith('.tmp'):
+        return True
+    
+    return False
 
 
 def get_video_duration(video_path):
@@ -58,19 +115,19 @@ def get_video_duration(video_path):
     try:
         file_size = os.path.getsize(video_path)
         
-        # Quick filter: If file is very small (< 200MB), likely not a full movie
-        if file_size < 200 * 1024 * 1024:  # 200 MB
+        # Quick filter: If file is very small (< 100MB), likely not 20+ minutes
+        if file_size < 100 * 1024 * 1024:  # 100 MB
             return 0
         
         # Estimate duration based on file size
-        # Average bitrate for movies: ~2-3 Mbps = 250-375 KB/s
+        # Average bitrate for videos: ~2-3 Mbps = 250-375 KB/s
         # Use conservative 3 Mbps estimate
         estimated_duration = file_size / (375 * 1024)  # seconds
         return estimated_duration
     except Exception as e:
         print(f"⚠ Could not check duration for {video_path}: {e}")
         # If we can't check, assume it's valid to avoid false negatives
-        return MIN_MOVIE_DURATION
+        return MIN_VIDEO_DURATION
 
 
 
@@ -106,12 +163,15 @@ def clean_title(title):
     return title.strip().title()
 
 
+
 def scan_movies(movies_dir):
     """
     Scan directory for movie files and extract metadata.
     
     Handles both flat structures (all files in one folder) and nested
     structures (each movie in its own subfolder).
+    
+    Filters videos by duration (20+ minutes minimum).
     
     Title Cleaning:
         - Removes year (1990-2099)
@@ -133,35 +193,79 @@ def scan_movies(movies_dir):
         ]
     """
     movies = []
+    scanned_files = 0
+    skipped_episodes = 0
+    skipped_short = 0
+    errors = 0
 
     if not os.path.exists(movies_dir):
-        print(f"Movies directory does not exist: {movies_dir}")
+        print(f"Path does not exist: {movies_dir}")
         return movies
 
-    # Walk through directory tree recursively
-    for root, dirs, files in os.walk(movies_dir):
-        for file in files:
-            if file.lower().endswith(VIDEO_EXTENSIONS):
-                full_path = os.path.join(root, file)
-                
-                # Check if it's a series episode - if so, skip it
-                if is_episode(file):
-                    print(f"⏭ Skipping series episode: {file}")
+    print(f"🔍 Scanning: {movies_dir}")
+    
+    try:
+        # Walk through directory tree recursively
+        for root, dirs, files in os.walk(movies_dir):
+            # Filter out excluded directories
+            try:
+                dirs[:] = [d for d in dirs if not should_skip_folder(os.path.join(root, d))]
+            except Exception:
+                pass
+            
+            for file in files:
+                try:
+                    if file.lower().endswith(VIDEO_EXTENSIONS):
+                        scanned_files += 1
+                        full_path = os.path.join(root, file)
+                        
+                        # Check if it's a series episode - if so, skip it
+                        if is_episode(file):
+                            skipped_episodes += 1
+                            continue
+                        
+                        # Check duration (20+ minutes)
+                        try:
+                            duration = get_video_duration(full_path)
+                            if duration < MIN_VIDEO_DURATION:
+                                skipped_short += 1
+                                continue
+                        except Exception as e:
+                            # If can't check duration, include it anyway
+                            pass
+                        
+                        title = os.path.splitext(file)[0]
+                        
+                        # Clean up title (remove year, quality tags, etc.)
+                        title = re.sub(r'\b(19|20)\d{2}\b', '', title)  # Remove year
+                        title = re.sub(r'\b(720p|1080p|2160p|4K|BluRay|WEB-DL|HDTV)\b', '', title, flags=re.IGNORECASE)
+                        title = re.sub(r'[._]', ' ', title)  # Replace dots and underscores
+                        title = ' '.join(title.split())  # Remove extra spaces
+                        
+                        movies.append({
+                            "title": title.strip() or file,
+                            "path": full_path
+                        })
+                        
+                        if len(movies) % 10 == 0:
+                            print(f"  Found {len(movies)} movies so far...")
+                            
+                except PermissionError:
+                    errors += 1
                     continue
-                
-                title = os.path.splitext(file)[0]
-                
-                # Clean up title (remove year, quality tags, etc.)
-                title = re.sub(r'\b(19|20)\d{2}\b', '', title)  # Remove year
-                title = re.sub(r'\b(720p|1080p|2160p|4K|BluRay|WEB-DL|HDTV)\b', '', title, flags=re.IGNORECASE)
-                title = re.sub(r'[._]', ' ', title)  # Replace dots and underscores
-                title = ' '.join(title.split())  # Remove extra spaces
-                
-                movies.append({
-                    "title": title.strip() or file,
-                    "path": full_path
-                })
-                print(f"Found movie: {title} at {full_path}")
+                except Exception as e:
+                    errors += 1
+                    continue
+                    
+    except Exception as e:
+        print(f"  Error scanning {movies_dir}: {e}")
+    
+    print(f"  📊 Scanned {scanned_files} video files")
+    print(f"  ✓ Found {len(movies)} movies")
+    print(f"  ⏭️  Skipped {skipped_episodes} episodes")
+    print(f"  ⏱️  Skipped {skipped_short} short videos")
+    if errors > 0:
+        print(f"  ⚠️  {errors} errors (permission denied)")
 
     return movies
 
