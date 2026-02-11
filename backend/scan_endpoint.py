@@ -12,7 +12,10 @@ sys.path.insert(0, current_dir)
 from backend.database import SessionLocal
 from backend.models import Movie, Series, Season, Episode
 from backend.scanner import scan_movies, scan_series
-from metadata import fetch_movie_metadata, fetch_series_metadata
+try:
+    from backend.metadata import fetch_movie_metadata, fetch_series_metadata
+except ImportError:
+    from metadata import fetch_movie_metadata, fetch_series_metadata
 
 router = APIRouter()
 

@@ -90,7 +90,10 @@ async def lifespan(app: FastAPI):
         print("Database initialized successfully!")
         
         # Create default admin user if no users exist
-        from auth import User, hash_password
+        try:
+            from backend.auth import User, hash_password
+        except ImportError:
+            from auth import User, hash_password
         db = SessionLocal()
         try:
             user_count = db.query(User).count()
