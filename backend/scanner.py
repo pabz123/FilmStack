@@ -45,8 +45,8 @@ VIDEO_EXTENSIONS = (".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".webm")
 EPISODE_PATTERN = re.compile(r"(S\d+E\d+)", re.IGNORECASE)
 
 # Minimum video file size (30 MB) - simple size filter, no duration checking
-MIN_VIDEO_SIZE = 30 * 1024 * 1024  # 30 MB
-MIN_VIDEO_DURATION = 1200  # Legacy constant, not used for filtering anymore
+MIN_VIDEO_SIZE = 30 * 1024 * 1024  # 30 MB in bytes
+MIN_MOVIE_DURATION = 1200  # Placeholder for duration (not used for actual filtering)
 
 # Folders to exclude from scanning (system, temp, hidden)
 EXCLUDED_FOLDERS = {
@@ -111,19 +111,21 @@ def get_video_duration(video_path):
         video_path (str): Path to the video file
         
     Returns:
-        float: Returns MIN_VIDEO_DURATION if file > 30MB, else 0
+        float: Returns 1200 (20 mins) if file > 30MB, else 0
     """
     try:
         file_size = os.path.getsize(video_path)
+        file_size_mb = file_size / (1024 * 1024)
         
         # Simple rule: Include any video larger than 30MB
-        if file_size > 30 * 1024 * 1024:  # 30 MB
-            return MIN_VIDEO_DURATION  # Return valid duration
+        if file_size > MIN_VIDEO_SIZE:
+            return 1200  # Return valid duration (20 mins as placeholder)
         else:
+            print(f"    ⏭️ Skipping {os.path.basename(video_path)} - Only {file_size_mb:.1f}MB (need > 30MB)")
             return 0  # Too small, skip
     except Exception as e:
-        # If we can't check, assume it's valid
-        return MIN_VIDEO_DURATION
+        # If we can't check size, include it anyway
+        return 1200
 
 
 
@@ -218,17 +220,23 @@ def scan_movies(movies_dir):
                         # Check if it's a series episode - if so, skip it
                         if is_episode(file):
                             skipped_episodes += 1
+                            print(f"    ⏭️ Skipping episode: {file}")
                             continue
                         
                         # Simple size check: > 30MB
                         try:
                             file_size = os.path.getsize(full_path)
+                            file_size_mb = file_size / (1024 * 1024)
+                            
                             if file_size <= MIN_VIDEO_SIZE:
                                 skipped_short += 1
+                                print(f"    ⏭️ Skipping {file} - Only {file_size_mb:.1f}MB (need > 30MB)")
                                 continue
-                        except Exception:
+                            else:
+                                print(f"    ✓ Including {file} ({file_size_mb:.1f}MB)")
+                        except Exception as e:
                             # If can't check size, include it anyway
-                            pass
+                            print(f"    ⚠️ Can't check size for {file}, including anyway")
                         
                         title = os.path.splitext(file)[0]
                         
@@ -272,61 +280,81 @@ def scan_series(series_dir):
     1. Series/Season XX/Episodes
     2. Series/Episodes (flat structure)
     3. Mixed structures
+    
+    Returns:
+        dict: {series_title: [episode_data, ...]}
     """
-    series_data = []
+    series_dict = {}
 
     if not os.path.exists(series_dir):
-        print(f"Series directory does not exist: {series_dir}")
-        return series_data
+        print(f"Path does not exist: {series_dir}")
+        return series_dict
 
-    # Walk through all directories
-    for series_name in os.listdir(series_dir):
-        series_path = os.path.join(series_dir, series_name)
-        if not os.path.isdir(series_path):
-            continue
-
-        print(f"Scanning series: {series_name}")
-
-        # Check if series has season folders or episodes directly
-        has_season_folders = False
-        for item in os.listdir(series_path):
-            item_path = os.path.join(series_path, item)
-            if os.path.isdir(item_path) and ('season' in item.lower() or re.match(r's\d+', item, re.IGNORECASE)):
-                has_season_folders = True
-                break
-
-        if has_season_folders:
-            # Structure: Series/Season XX/Episodes
-            for season_folder in os.listdir(series_path):
-                season_path = os.path.join(series_path, season_folder)
-                if not os.path.isdir(season_path):
-                    continue
-
-                # Extract season number
-                season_number = extract_season_number(season_folder)
-                if season_number is None:
-                    continue
-
-                print(f"  Season {season_number}")
-
-                # Scan episodes in season folder
-                for file in os.listdir(season_path):
+    print(f"🔍 Scanning for series: {series_dir}")
+    
+    scanned_files = 0
+    skipped_movies = 0
+    skipped_short = 0
+    errors = 0
+    
+    try:
+        # Walk through directory tree recursively
+        for root, dirs, files in os.walk(series_dir):
+            # Filter out excluded directories
+            try:
+                dirs[:] = [d for d in dirs if not should_skip_folder(os.path.join(root, d))]
+            except Exception:
+                pass
+            
+            for file in files:
+                try:
                     if file.lower().endswith(VIDEO_EXTENSIONS):
-                        episode_data = extract_episode_info(file, series_name, season_number, season_path)
-                        if episode_data:
-                            series_data.append(episode_data)
-                            print(f"    Found episode: S{season_number:02d}E{episode_data['episode_number']:02d}")
-        else:
-            # Structure: Series/Episodes (flat) - assume Season 1
-            print(f"  Flat structure detected, assuming Season 1")
-            for file in os.listdir(series_path):
-                if file.lower().endswith(VIDEO_EXTENSIONS):
-                    episode_data = extract_episode_info(file, series_name, 1, series_path)
-                    if episode_data:
-                        series_data.append(episode_data)
-                        print(f"    Found episode: S01E{episode_data['episode_number']:02d}")
+                        scanned_files += 1
+                        full_path = os.path.join(root, file)
+                        
+                        # Check if it's a series episode
+                        if is_episode(file):
+                            # Check file size
+                            try:
+                                file_size = os.path.getsize(full_path)
+                                file_size_mb = file_size / (1024 * 1024)
+                                
+                                if file_size <= MIN_VIDEO_SIZE:
+                                    skipped_short += 1
+                                    continue
+                                    
+                                print(f"    ✓ Including episode: {file} ({file_size_mb:.1f}MB)")
+                            except Exception:
+                                pass
+                            
+                            # Parse episode info
+                            episode_data = parse_episode(file, root)
+                            series_title = episode_data['series_title']
+                            
+                            if series_title not in series_dict:
+                                series_dict[series_title] = []
+                            series_dict[series_title].append(episode_data)
+                        else:
+                            skipped_movies += 1
+                            
+                except PermissionError:
+                    errors += 1
+                    continue
+                except Exception as e:
+                    errors += 1
+                    continue
+                    
+    except Exception as e:
+        print(f"  Error scanning {series_dir}: {e}")
+    
+    print(f"  📊 Scanned {scanned_files} video files")
+    print(f"  ✓ Found {len(series_dict)} series with episodes (> 30MB)")
+    print(f"  ⏭️  Skipped {skipped_movies} non-episodes")
+    print(f"  📏 Skipped {skipped_short} small files (< 30MB)")
+    if errors > 0:
+        print(f"  ⚠️  {errors} errors (permission denied)")
 
-    return series_data
+    return series_dict
 
 
 def extract_season_number(folder_name):
