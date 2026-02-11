@@ -114,12 +114,8 @@ def start_backend_threaded():
             _startup_log(f"Still waiting for backend... ({elapsed:.1f}s)")
     
     _startup_log(f"⚠ Backend thread started but port {port} not responding after 60s - continuing anyway")
-    return False
-            _startup_log(f"Still waiting for backend... ({(i+1)*0.5:.1f}s)")
-    
-    _startup_log("⚠ Backend thread started but port 8765 not responding after 60s - continuing anyway")
     print("⚠ Warning: Backend may not have started properly")
-    return False  # Return False to indicate problem
+    return False
 
 
 def start_backend_subprocess():
