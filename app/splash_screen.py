@@ -127,6 +127,14 @@ class LoadingSplash(QWidget):
             self.progress.setRange(0, 100)
         self.progress.setValue(value)
         QApplication.processEvents()
+    
+    def close_with_fade(self):
+        """Close splash screen (with optional fade effect)."""
+        self.close()
+    
+    def finish(self):
+        """Finish and close splash screen."""
+        self.close()
 
 
 def show_loading_splash():
