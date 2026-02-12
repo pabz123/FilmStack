@@ -77,12 +77,17 @@ def start_backend_threaded():
             
             _startup_log(f"Backend thread: Starting uvicorn server on port {port}")
             
+            # Disable logging for frozen mode (no console)
+            import logging
+            logging.basicConfig(level=logging.CRITICAL)  # Suppress all logs
+            
             config = uvicorn.Config(
                 app=app,
                 host="127.0.0.1",
                 port=port,
-                log_level="error",
-                access_log=False
+                log_level="critical",  # Only critical errors
+                access_log=False,
+                log_config=None  # Disable default logging config
             )
             server = uvicorn.Server(config)
             _startup_log("Backend thread: Uvicorn config created, calling server.run()")
