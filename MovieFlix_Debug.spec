@@ -23,6 +23,16 @@ datas_list = [
     ('.env', '.'),
 ]
 
+# Add multipart package as data files
+import site
+site_packages = site.getsitepackages()[0]
+multipart_path = os.path.join(site_packages, 'multipart')
+if os.path.exists(multipart_path):
+    datas_list.append((multipart_path, 'multipart'))
+    print(f"✓ Added multipart from: {multipart_path}")
+else:
+    print(f"⚠️ Warning: multipart not found at {multipart_path}")
+
 a = Analysis(
     ['start_movieflix.py'],
     pathex=[project_dir],
