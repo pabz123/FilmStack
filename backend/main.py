@@ -37,6 +37,13 @@ from typing import List, Any
 import sys
 import os
 
+# Force import multipart to ensure PyInstaller includes it
+try:
+    import multipart
+    import python_multipart
+except ImportError:
+    pass  # Will fail at runtime if needed
+
 # Add paths for both frozen and source mode
 if getattr(sys, 'frozen', False):
     # Running as compiled executable

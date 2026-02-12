@@ -1,0 +1,665 @@
+ 
+================================================ 
+MOVIEFLIX ERROR REPORT 
+Generated: 12/02/2026  9:30:48.42 
+================================================ 
+ 
+======== STARTUP LOG ======== 
+[2026-02-02 00:00:44] Backend already running, launching GUI
+[2026-02-02 00:00:44] Launching GUI
+[2026-02-02 00:00:44] Launcher main() starting
+[2026-02-02 00:00:44] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 00:02:02] Login cancelled
+[2026-02-02 00:02:19] Backend already running, launching GUI
+[2026-02-02 00:02:19] Launching GUI
+[2026-02-02 00:02:19] Launcher main() starting
+[2026-02-02 00:02:19] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 00:02:59] Login cancelled
+[2026-02-02 00:06:40] Starting backend process
+[2026-02-02 00:06:46] Launching GUI
+[2026-02-02 00:06:46] Launcher main() starting
+[2026-02-02 00:06:46] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 00:07:05] Login accepted
+[2026-02-02 00:07:06] Step 1: Initializing
+[2026-02-02 00:07:06] Creating main window
+[2026-02-02 00:07:06] Main window created
+[2026-02-02 00:07:06] Step 3: Showing window
+[2026-02-02 00:07:06] Main window shown
+[2026-02-02 00:32:07] Starting backend process
+[2026-02-02 00:32:12] Launching GUI
+[2026-02-02 00:32:13] Launcher main() starting
+[2026-02-02 00:32:13] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 00:32:51] Login accepted
+[2026-02-02 00:32:51] Step 1: Initializing
+[2026-02-02 00:32:51] Creating main window
+[2026-02-02 00:32:51] Main window created
+[2026-02-02 00:32:51] Step 3: Showing window
+[2026-02-02 00:32:51] Main window shown
+[2026-02-02 00:48:38] Starting backend process
+[2026-02-02 00:48:43] Launching GUI
+[2026-02-02 00:48:44] Launcher main() starting
+[2026-02-02 00:48:44] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 00:56:05] Login accepted
+[2026-02-02 00:56:05] Step 1: Initializing
+[2026-02-02 00:56:06] Creating main window
+[2026-02-02 00:56:07] Main window created
+[2026-02-02 00:56:08] Step 3: Showing window
+[2026-02-02 00:56:08] Main window shown
+[2026-02-02 09:08:43] Starting backend process
+[2026-02-02 09:08:49] Launching GUI
+[2026-02-02 09:09:19] Launcher main() starting
+[2026-02-02 09:09:23] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 09:09:41] Starting backend process
+[2026-02-02 09:09:46] Launching GUI
+[2026-02-02 09:09:46] Launcher main() starting
+[2026-02-02 09:09:46] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 09:10:22] Login accepted
+[2026-02-02 09:10:22] Step 1: Initializing
+[2026-02-02 09:10:22] Creating main window
+[2026-02-02 09:10:23] Main window created
+[2026-02-02 09:10:24] Step 3: Showing window
+[2026-02-02 09:10:24] Main window shown
+[2026-02-02 09:18:42] Login cancelled
+[2026-02-02 09:23:19] Starting backend process
+[2026-02-02 09:23:25] Launching GUI
+[2026-02-02 09:23:25] Launcher main() starting
+[2026-02-02 09:23:25] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 09:23:45] Login accepted
+[2026-02-02 09:23:45] Step 1: Initializing
+[2026-02-02 09:23:45] Creating main window
+[2026-02-02 09:23:46] Main window created
+[2026-02-02 09:23:46] Step 3: Showing window
+[2026-02-02 09:23:46] Main window shown
+[2026-02-02 09:56:28] Starting backend process
+[2026-02-02 09:56:33] Launching GUI
+[2026-02-02 09:56:33] Failed to launch GUI: No module named 'PyQt5'
+[2026-02-02 09:56:58] Starting backend process
+[2026-02-02 09:57:03] Launching GUI
+[2026-02-02 09:57:51] Launcher main() starting
+[2026-02-02 10:00:30] Starting backend process
+[2026-02-02 10:00:35] Launching GUI
+[2026-02-02 10:00:36] Launcher main() starting
+[2026-02-02 10:00:37] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:01:51] Login accepted
+[2026-02-02 10:01:51] Step 1: Initializing
+[2026-02-02 10:01:51] Creating main window
+[2026-02-02 10:01:52] Main window created
+[2026-02-02 10:01:53] Step 3: Showing window
+[2026-02-02 10:01:53] Main window shown
+[2026-02-02 10:16:27] Starting backend process
+[2026-02-02 10:16:32] Launching GUI
+[2026-02-02 10:16:33] Launcher main() starting
+[2026-02-02 10:16:34] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:21:05] Starting backend process
+[2026-02-02 10:21:10] Launching GUI
+[2026-02-02 10:21:11] Launcher main() starting
+[2026-02-02 10:21:11] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:21:27] Login accepted
+[2026-02-02 10:21:27] Step 1: Initializing
+[2026-02-02 10:21:27] Creating main window
+[2026-02-02 10:21:27] Main window created
+[2026-02-02 10:21:27] Step 3: Showing window
+[2026-02-02 10:21:27] Main window shown
+[2026-02-02 10:29:45] Starting backend process
+[2026-02-02 10:29:50] Launching GUI
+[2026-02-02 10:29:51] Launcher main() starting
+[2026-02-02 10:29:51] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:32:00] Login accepted
+[2026-02-02 10:32:00] Step 1: Initializing
+[2026-02-02 10:32:00] Creating main window
+[2026-02-02 10:32:00] Main window created
+[2026-02-02 10:32:00] Step 3: Showing window
+[2026-02-02 10:32:00] Main window shown
+[2026-02-02 10:38:19] Starting backend process
+[2026-02-02 10:38:25] Launching GUI
+[2026-02-02 10:38:25] Launcher main() starting
+[2026-02-02 10:38:25] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:39:11] Login accepted
+[2026-02-02 10:39:11] Step 1: Initializing
+[2026-02-02 10:39:11] Creating main window
+[2026-02-02 10:39:11] Main window created
+[2026-02-02 10:39:11] Step 3: Showing window
+[2026-02-02 10:39:11] Main window shown
+[2026-02-02 10:50:29] Starting backend process
+[2026-02-02 10:50:34] Launching GUI
+[2026-02-02 10:50:37] Launcher main() starting
+[2026-02-02 10:50:39] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 10:51:09] Login accepted
+[2026-02-02 10:51:10] Step 1: Initializing
+[2026-02-02 10:51:10] Creating main window
+[2026-02-02 10:51:10] Main window created
+[2026-02-02 10:51:10] Step 3: Showing window
+[2026-02-02 10:51:10] Main window shown
+[2026-02-02 11:07:24] Starting backend process
+[2026-02-02 11:07:30] Launching GUI
+[2026-02-02 11:07:32] Launcher main() starting
+[2026-02-02 11:07:34] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 11:08:11] Login accepted
+[2026-02-02 11:08:11] Step 1: Initializing
+[2026-02-02 11:08:11] Creating main window
+[2026-02-02 11:08:12] Main window created
+[2026-02-02 11:08:12] Step 3: Showing window
+[2026-02-02 11:08:12] Main window shown
+[2026-02-02 11:10:10] Starting backend process
+[2026-02-02 11:10:15] Launching GUI
+[2026-02-02 11:10:16] Launcher main() starting
+[2026-02-02 11:10:16] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 11:10:38] Login accepted
+[2026-02-02 11:10:38] Step 1: Initializing
+[2026-02-02 11:10:38] Creating main window
+[2026-02-02 11:10:38] Main window created
+[2026-02-02 11:10:38] Step 3: Showing window
+[2026-02-02 11:10:38] Main window shown
+[2026-02-02 11:33:56] Starting backend process
+[2026-02-02 11:34:02] Launching GUI
+[2026-02-02 11:34:05] Launcher main() starting
+[2026-02-02 11:34:07] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 11:34:29] Login accepted
+[2026-02-02 11:34:30] Step 1: Initializing
+[2026-02-02 11:34:30] Creating main window
+[2026-02-02 11:34:32] Main window created
+[2026-02-02 11:34:34] Step 3: Showing window
+[2026-02-02 11:34:34] Main window shown
+[2026-02-02 11:54:04] Starting backend process
+[2026-02-02 11:54:09] Launching GUI
+[2026-02-02 11:54:10] Launcher main() starting
+[2026-02-02 11:54:10] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 11:54:22] Login cancelled
+[2026-02-02 11:55:29] Starting backend process
+[2026-02-02 11:55:35] Launching GUI
+[2026-02-02 11:55:35] Launcher main() starting
+[2026-02-02 11:55:35] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 11:55:51] Login accepted
+[2026-02-02 11:55:51] Step 1: Initializing
+[2026-02-02 11:55:51] Creating main window
+[2026-02-02 11:55:51] Main window created
+[2026-02-02 11:55:52] Step 3: Showing window
+[2026-02-02 11:55:52] Main window shown
+[2026-02-02 12:08:21] Starting backend process
+[2026-02-02 12:08:26] Launching GUI
+[2026-02-02 12:08:28] Launcher main() starting
+[2026-02-02 12:08:29] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 12:09:17] Login accepted
+[2026-02-02 12:09:17] Step 1: Initializing
+[2026-02-02 12:09:18] Creating main window
+[2026-02-02 12:09:18] Main window created
+[2026-02-02 12:09:18] Step 3: Showing window
+[2026-02-02 12:09:18] Main window shown
+[2026-02-02 12:30:55] Starting backend process
+[2026-02-02 12:31:01] Launching GUI
+[2026-02-02 12:31:01] Launcher main() starting
+[2026-02-02 12:31:01] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 12:31:44] Login cancelled
+[2026-02-02 12:32:21] Starting backend process
+[2026-02-02 12:32:26] Launching GUI
+[2026-02-02 12:32:27] Launcher main() starting
+[2026-02-02 12:32:27] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 12:32:50] Login cancelled
+[2026-02-02 12:37:49] Starting backend process
+[2026-02-02 12:37:54] Launching GUI
+[2026-02-02 12:37:55] Launcher main() starting
+[2026-02-02 12:37:55] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-02 12:38:08] Login accepted
+[2026-02-02 12:38:08] Step 1: Initializing
+[2026-02-02 12:38:08] Creating main window
+[2026-02-02 12:38:08] Main window created
+[2026-02-02 12:38:08] Step 3: Showing window
+[2026-02-02 12:38:08] Main window shown
+[2026-02-03 10:04:14] Starting backend process
+[2026-02-03 10:04:20] Launching GUI
+[2026-02-03 10:04:26] Launcher main() starting
+[2026-02-03 10:04:30] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 10:06:04] Login accepted
+[2026-02-03 10:06:06] Step 1: Initializing
+[2026-02-03 10:06:06] Creating main window
+[2026-02-03 10:06:07] Main window created
+[2026-02-03 10:06:10] Step 3: Showing window
+[2026-02-03 10:06:10] Main window shown
+[2026-02-03 10:45:35] Starting backend process
+[2026-02-03 10:45:41] Launching GUI
+[2026-02-03 10:45:49] Launcher main() starting
+[2026-02-03 10:45:56] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 10:47:25] Login accepted
+[2026-02-03 10:47:26] Step 1: Initializing
+[2026-02-03 10:47:26] Creating main window
+[2026-02-03 10:47:27] Main window created
+[2026-02-03 10:47:29] Step 3: Showing window
+[2026-02-03 10:47:29] Main window shown
+[2026-02-03 10:57:33] Starting backend process
+[2026-02-03 10:57:39] Launching GUI
+[2026-02-03 10:57:40] Launcher main() starting
+[2026-02-03 10:57:41] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 10:59:09] Login accepted
+[2026-02-03 10:59:09] Step 1: Initializing
+[2026-02-03 10:59:09] Creating main window
+[2026-02-03 10:59:10] Main window created
+[2026-02-03 10:59:10] Step 3: Showing window
+[2026-02-03 10:59:10] Main window shown
+[2026-02-03 11:11:28] Starting backend process
+[2026-02-03 11:11:34] Launching GUI
+[2026-02-03 11:11:34] Launcher main() starting
+[2026-02-03 11:11:34] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 11:11:59] Login accepted
+[2026-02-03 11:12:00] Step 1: Initializing
+[2026-02-03 11:12:00] Creating main window
+[2026-02-03 11:12:00] Main window created
+[2026-02-03 11:12:00] Step 3: Showing window
+[2026-02-03 11:12:00] Main window shown
+[2026-02-03 11:28:14] Starting backend process
+[2026-02-03 11:28:20] Launching GUI
+[2026-02-03 11:28:20] Launcher main() starting
+[2026-02-03 11:28:20] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 11:29:03] Login accepted
+[2026-02-03 11:29:03] Step 1: Initializing
+[2026-02-03 11:29:03] Creating main window
+[2026-02-03 11:29:04] Main window created
+[2026-02-03 11:29:04] Step 3: Showing window
+[2026-02-03 11:29:04] Main window shown
+[2026-02-03 11:38:45] Starting backend process
+[2026-02-03 11:38:50] Launching GUI
+[2026-02-03 11:38:51] Launcher main() starting
+[2026-02-03 11:38:51] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 11:41:03] Login accepted
+[2026-02-03 11:41:03] Step 1: Initializing
+[2026-02-03 11:41:03] Creating main window
+[2026-02-03 11:41:03] Main window created
+[2026-02-03 11:41:03] Step 3: Showing window
+[2026-02-03 11:41:03] Main window shown
+[2026-02-03 11:52:28] Starting backend process
+[2026-02-03 11:52:33] Launching GUI
+[2026-02-03 11:52:36] Launcher main() starting
+[2026-02-03 11:52:37] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 11:54:12] Login accepted
+[2026-02-03 11:54:16] Step 1: Initializing
+[2026-02-03 11:54:16] Creating main window
+[2026-02-03 11:54:27] Main window created
+[2026-02-03 11:54:46] Step 3: Showing window
+[2026-02-03 11:54:46] Main window shown
+[2026-02-03 12:25:04] Starting backend process
+[2026-02-03 12:25:10] Launching GUI
+[2026-02-03 12:26:22] Launcher main() starting
+[2026-02-03 12:27:15] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 12:27:48] Starting backend process
+[2026-02-03 12:27:53] Launching GUI
+[2026-02-03 12:27:57] Launcher main() starting
+[2026-02-03 12:27:58] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 12:31:09] Login accepted
+[2026-02-03 12:31:10] Step 1: Initializing
+[2026-02-03 12:31:10] Creating main window
+[2026-02-03 12:31:11] Main window created
+[2026-02-03 12:31:12] Step 3: Showing window
+[2026-02-03 12:31:12] Main window shown
+[2026-02-03 12:31:21] Login cancelled
+[2026-02-03 12:33:57] Starting backend process
+[2026-02-03 12:34:02] Launching GUI
+[2026-02-03 12:34:19] Launcher main() starting
+[2026-02-03 12:34:28] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 12:35:20] Login accepted
+[2026-02-03 12:35:22] Step 1: Initializing
+[2026-02-03 12:35:22] Creating main window
+[2026-02-03 12:35:24] Main window created
+[2026-02-03 12:35:24] Step 3: Showing window
+[2026-02-03 12:35:24] Main window shown
+[2026-02-03 12:58:14] Starting backend process
+[2026-02-03 12:58:19] Launching GUI
+[2026-02-03 12:58:24] Launcher main() starting
+[2026-02-03 12:58:31] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 12:59:22] Login accepted
+[2026-02-03 12:59:22] Step 1: Initializing
+[2026-02-03 12:59:22] Creating main window
+[2026-02-03 12:59:24] Main window created
+[2026-02-03 12:59:24] Step 3: Showing window
+[2026-02-03 12:59:25] Main window shown
+[2026-02-03 13:11:18] Starting backend process
+[2026-02-03 13:11:24] Launching GUI
+[2026-02-03 13:11:25] Launcher main() starting
+[2026-02-03 13:11:27] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:11:57] Login accepted
+[2026-02-03 13:11:57] Step 1: Initializing
+[2026-02-03 13:11:57] Creating main window
+[2026-02-03 13:11:58] Main window created
+[2026-02-03 13:11:59] Step 3: Showing window
+[2026-02-03 13:11:59] Main window shown
+[2026-02-03 13:21:37] Starting backend process
+[2026-02-03 13:21:43] Launching GUI
+[2026-02-03 13:21:48] Launcher main() starting
+[2026-02-03 13:21:52] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:22:41] Login accepted
+[2026-02-03 13:22:42] Step 1: Initializing
+[2026-02-03 13:22:42] Creating main window
+[2026-02-03 13:22:43] Main window created
+[2026-02-03 13:22:45] Step 3: Showing window
+[2026-02-03 13:22:45] Main window shown
+[2026-02-03 13:26:08] Starting backend process
+[2026-02-03 13:26:13] Launching GUI
+[2026-02-03 13:26:14] Launcher main() starting
+[2026-02-03 13:26:14] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:26:39] Login accepted
+[2026-02-03 13:26:39] Step 1: Initializing
+[2026-02-03 13:26:39] Creating main window
+[2026-02-03 13:26:39] Main window created
+[2026-02-03 13:26:39] Step 3: Showing window
+[2026-02-03 13:26:39] Main window shown
+[2026-02-03 13:32:00] Starting backend process
+[2026-02-03 13:32:05] Launching GUI
+[2026-02-03 13:32:05] Launcher main() starting
+[2026-02-03 13:32:05] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:32:18] Login accepted
+[2026-02-03 13:32:18] Step 1: Initializing
+[2026-02-03 13:32:19] Creating main window
+[2026-02-03 13:32:20] Main window created
+[2026-02-03 13:32:20] Step 3: Showing window
+[2026-02-03 13:32:21] Main window shown
+[2026-02-03 13:35:24] Starting backend process
+[2026-02-03 13:35:29] Launching GUI
+[2026-02-03 13:35:29] Launcher main() starting
+[2026-02-03 13:35:29] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:36:09] Login accepted
+[2026-02-03 13:36:10] Step 1: Initializing
+[2026-02-03 13:36:10] Creating main window
+[2026-02-03 13:36:10] Main window created
+[2026-02-03 13:36:10] Step 3: Showing window
+[2026-02-03 13:36:10] Main window shown
+[2026-02-03 13:48:09] Starting backend process
+[2026-02-03 13:48:15] Launching GUI
+[2026-02-03 13:48:15] Launcher main() starting
+[2026-02-03 13:48:15] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-03 13:52:42] Login accepted
+[2026-02-03 13:52:42] Step 1: Initializing
+[2026-02-03 13:52:42] Creating main window
+[2026-02-03 13:52:43] Main window created
+[2026-02-03 13:52:43] Step 3: Showing window
+[2026-02-03 13:52:43] Main window shown
+[2026-02-04 10:00:01] Starting backend process
+[2026-02-04 10:00:06] Launching GUI
+[2026-02-04 10:00:12] Launcher main() starting
+[2026-02-04 10:00:16] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 10:01:06] Login accepted
+[2026-02-04 10:01:08] Step 1: Initializing
+[2026-02-04 10:01:08] Creating main window
+[2026-02-04 10:01:11] Main window created
+[2026-02-04 10:01:13] Step 3: Showing window
+[2026-02-04 10:01:13] Main window shown
+[2026-02-04 10:23:40] Starting backend process
+[2026-02-04 10:23:46] Launching GUI
+[2026-02-04 10:23:48] Launcher main() starting
+[2026-02-04 10:23:54] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 10:45:57] Login accepted
+[2026-02-04 10:45:58] Step 1: Initializing
+[2026-02-04 10:45:58] Creating main window
+[2026-02-04 10:45:59] Main window created
+[2026-02-04 10:46:01] Step 3: Showing window
+[2026-02-04 10:46:01] Main window shown
+[2026-02-04 10:48:46] Starting backend process
+[2026-02-04 10:48:51] Launching GUI
+[2026-02-04 10:48:52] Launcher main() starting
+[2026-02-04 10:48:53] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 10:49:13] Login accepted
+[2026-02-04 10:49:13] Step 1: Initializing
+[2026-02-04 10:49:13] Creating main window
+[2026-02-04 10:49:13] Main window created
+[2026-02-04 10:49:13] Step 3: Showing window
+[2026-02-04 10:49:13] Main window shown
+[2026-02-04 10:55:25] Starting backend process
+[2026-02-04 10:55:30] Launching GUI
+[2026-02-04 10:55:30] Failed to launch GUI: No module named 'PyQt5'
+[2026-02-04 10:55:47] Starting backend process
+[2026-02-04 10:55:52] Launching GUI
+[2026-02-04 10:55:54] Launcher main() starting
+[2026-02-04 10:55:55] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 10:56:36] Login accepted
+[2026-02-04 10:56:36] Step 1: Initializing
+[2026-02-04 10:56:36] Creating main window
+[2026-02-04 10:56:36] Main window created
+[2026-02-04 10:56:36] Step 3: Showing window
+[2026-02-04 10:56:36] Main window shown
+[2026-02-04 11:11:20] Starting backend process
+[2026-02-04 11:11:26] Launching GUI
+[2026-02-04 11:11:29] Launcher main() starting
+[2026-02-04 11:11:31] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 11:12:02] Login accepted
+[2026-02-04 11:12:03] Step 1: Initializing
+[2026-02-04 11:12:03] Creating main window
+[2026-02-04 11:12:04] Main window created
+[2026-02-04 11:12:06] Step 3: Showing window
+[2026-02-04 11:12:06] Main window shown
+[2026-02-04 11:32:36] Starting backend process
+[2026-02-04 11:32:42] Launching GUI
+[2026-02-04 11:32:42] Launcher main() starting
+[2026-02-04 11:32:42] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-04 11:33:02] Login accepted
+[2026-02-04 11:33:03] Step 1: Initializing
+[2026-02-04 11:33:03] Creating main window
+[2026-02-04 11:33:03] Main window created
+[2026-02-04 11:33:03] Step 3: Showing window
+[2026-02-04 11:33:03] Main window shown
+[2026-02-06 09:50:22] Starting backend process
+[2026-02-06 09:50:27] Launching GUI
+[2026-02-06 09:50:31] Launcher main() starting
+[2026-02-06 09:50:34] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 09:53:07] Login accepted
+[2026-02-06 09:53:09] Step 1: Initializing
+[2026-02-06 09:53:09] Creating main window
+[2026-02-06 09:53:14] Main window created
+[2026-02-06 09:53:20] Step 3: Showing window
+[2026-02-06 09:53:20] Main window shown
+[2026-02-06 11:09:12] Starting backend process
+[2026-02-06 11:09:17] Launching GUI
+[2026-02-06 11:09:22] Launcher main() starting
+[2026-02-06 11:09:25] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:10:25] Login accepted
+[2026-02-06 11:10:25] Step 1: Initializing
+[2026-02-06 11:10:25] Creating main window
+[2026-02-06 11:10:26] Main window created
+[2026-02-06 11:10:26] Step 3: Showing window
+[2026-02-06 11:10:26] Main window shown
+[2026-02-06 11:26:28] Starting backend process
+[2026-02-06 11:26:34] Launching GUI
+[2026-02-06 11:26:34] Launcher main() starting
+[2026-02-06 11:26:34] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:26:48] Login accepted
+[2026-02-06 11:26:48] Step 1: Initializing
+[2026-02-06 11:26:49] Creating main window
+[2026-02-06 11:26:49] Main window created
+[2026-02-06 11:26:49] Step 3: Showing window
+[2026-02-06 11:26:49] Main window shown
+[2026-02-06 11:43:22] Starting backend process
+[2026-02-06 11:43:27] Launching GUI
+[2026-02-06 11:43:28] Launcher main() starting
+[2026-02-06 11:43:28] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:48:26] Login cancelled
+[2026-02-06 11:50:30] Starting backend process
+[2026-02-06 11:50:36] Launching GUI
+[2026-02-06 11:50:36] Launcher main() starting
+[2026-02-06 11:50:36] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:50:50] Login accepted
+[2026-02-06 11:50:51] Step 1: Initializing
+[2026-02-06 11:50:51] Creating main window
+[2026-02-06 11:50:51] Main window created
+[2026-02-06 11:50:51] Step 3: Showing window
+[2026-02-06 11:50:51] Main window shown
+[2026-02-06 11:54:49] Starting backend process
+[2026-02-06 11:54:55] Launching GUI
+[2026-02-06 11:54:55] Failed to launch GUI: No module named 'PyQt5'
+[2026-02-06 11:55:38] Starting backend process
+[2026-02-06 11:55:44] Launching GUI
+[2026-02-06 11:55:44] Launcher main() starting
+[2026-02-06 11:55:44] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:56:03] Login accepted
+[2026-02-06 11:56:03] Step 1: Initializing
+[2026-02-06 11:56:03] Creating main window
+[2026-02-06 11:56:03] Main window created
+[2026-02-06 11:56:04] Step 3: Showing window
+[2026-02-06 11:56:04] Main window shown
+[2026-02-06 11:57:34] Starting backend process
+[2026-02-06 11:57:39] Launching GUI
+[2026-02-06 11:57:39] Launcher main() starting
+[2026-02-06 11:57:40] Failed to launch GUI: 'charmap' codec can't encode character '\u26a0' in position 0: character maps to <undefined>
+[2026-02-06 11:58:22] Starting backend process
+[2026-02-06 11:58:28] Launching GUI
+[2026-02-06 11:58:28] Launcher main() starting
+[2026-02-06 11:58:28] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 11:58:52] Login accepted
+[2026-02-06 11:58:52] Step 1: Initializing
+[2026-02-06 11:58:53] Creating main window
+[2026-02-06 11:58:53] Main window created
+[2026-02-06 11:58:53] Step 3: Showing window
+[2026-02-06 11:58:53] Main window shown
+[2026-02-06 12:02:32] Starting backend process
+[2026-02-06 12:09:08] Starting backend process
+[2026-02-06 12:09:13] Launching GUI
+[2026-02-06 12:09:13] Launcher main() starting
+[2026-02-06 12:09:13] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 12:09:47] Login accepted
+[2026-02-06 12:09:47] Step 1: Initializing
+[2026-02-06 12:09:47] Creating main window
+[2026-02-06 12:09:47] Main window created
+[2026-02-06 12:09:48] Step 3: Showing window
+[2026-02-06 12:09:48] Main window shown
+[2026-02-06 14:25:59] Starting backend process
+[2026-02-06 14:26:05] Launching GUI
+[2026-02-06 14:26:07] Launcher main() starting
+[2026-02-06 14:26:08] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-06 14:26:51] Login accepted
+[2026-02-06 14:26:51] Step 1: Initializing
+[2026-02-06 14:26:51] Creating main window
+[2026-02-06 14:26:52] Main window created
+[2026-02-06 14:26:54] Step 3: Showing window
+[2026-02-06 14:26:54] Main window shown
+[2026-02-09 09:30:56] ==================================================
+[2026-02-09 09:30:57] MovieFlix starting
+[2026-02-09 09:30:57] Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+[2026-02-09 09:30:57] Frozen: False
+[2026-02-09 09:30:57] Executable: D:\movie_library\venv\Scripts\python.exe
+[2026-02-09 09:30:57] Running from source - starting backend as subprocess
+[2026-02-09 09:30:58] Starting backend process
+[2026-02-09 09:31:10] Launching GUI
+[2026-02-09 09:31:24] Launcher main() starting
+[2026-02-09 09:31:29] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-09 09:31:30] Failed to launch GUI: cannot import name 'SplashScreen' from 'app.splash_screen' (D:\movie_library\app\splash_screen.py)
+[2026-02-09 09:33:32] ==================================================
+[2026-02-09 09:33:32] MovieFlix starting
+[2026-02-09 09:33:32] Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+[2026-02-09 09:33:32] Frozen: False
+[2026-02-09 09:33:32] Executable: D:\movie_library\venv\Scripts\python.exe
+[2026-02-09 09:33:32] Running from source - starting backend as subprocess
+[2026-02-09 09:33:32] Starting backend process
+[2026-02-09 09:33:44] Launching GUI
+[2026-02-09 09:33:45] Launcher main() starting
+[2026-02-09 09:33:45] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-09 09:33:53] Fatal error: 'LoadingSplash' object has no attribute 'close_with_fade'
+[2026-02-09 09:34:40] ==================================================
+[2026-02-09 09:34:40] MovieFlix starting
+[2026-02-09 09:34:40] Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+[2026-02-09 09:34:40] Frozen: False
+[2026-02-09 09:34:40] Executable: D:\movie_library\venv\Scripts\python.exe
+[2026-02-09 09:34:40] Running from source - starting backend as subprocess
+[2026-02-09 09:34:40] Starting backend process
+[2026-02-09 09:34:52] Launching GUI
+[2026-02-09 09:34:52] Launcher main() starting
+[2026-02-09 09:34:52] Icon set: D:\movie_library\MovieFlix.ico
+[2026-02-09 09:35:07] Login accepted
+[2026-02-09 09:35:07] Step 1: Initializing
+[2026-02-09 09:35:07] Creating main window
+[2026-02-09 09:35:08] Main window created
+[2026-02-09 09:35:10] Step 3: Showing window
+[2026-02-09 09:35:10] Main window shown
+ 
+======== BACKEND ERROR LOG ======== 
+Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\movie_library\venv\Scripts\uvicorn.exe\__main__.py", line 6, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "D:\movie_library\venv\Lib\site-packages\click\core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\click\core.py", line 1406, in main
+    rv = self.invoke(ctx)
+  File "D:\movie_library\venv\Lib\site-packages\click\core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\click\core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\main.py", line 418, in main
+    run(
+    ~~~^
+        app,
+        ^^^^
+    ...<45 lines>...
+        h11_max_incomplete_event_size=h11_max_incomplete_event_size,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\main.py", line 587, in run
+    server.run()
+    ~~~~~~~~~~^^
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\server.py", line 62, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PRECIOUS\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\PRECIOUS\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\PRECIOUS\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\server.py", line 69, in serve
+    config.load()
+    ~~~~~~~~~~~^^
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\config.py", line 458, in load
+    self.loaded_app = import_from_string(self.app)
+                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\uvicorn\importer.py", line 21, in import_from_string
+    module = importlib.import_module(module_str)
+  File "C:\Users\PRECIOUS\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "D:\movie_library\backend\main.py", line 393, in <module>
+    @app.post("/series/bulk_add")
+     ~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\fastapi\routing.py", line 956, in decorator
+    self.add_api_route(
+    ~~~~~~~~~~~~~~~~~~^
+        path,
+        ^^^^^
+    ...<23 lines>...
+        generate_unique_id_function=generate_unique_id_function,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\movie_library\venv\Lib\site-packages\fastapi\routing.py", line 895, in add_api_route
+    route = route_class(
+        self.prefix + path,
+    ...<24 lines>...
+        generate_unique_id_function=current_generate_unique_id,
+    )
+  File "D:\movie_library\venv\Lib\site-packages\fastapi\routing.py", line 531, in __init__
+    self.body_field = get_body_field(dependant=self.dependant, name=self.unique_id)
+                      ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 815, in get_body_field
+    check_file_field(final_field)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\movie_library\venv\Lib\site-packages\fastapi\dependencies\utils.py", line 100, in check_file_field
+    raise RuntimeError(multipart_not_installed_error) from None
+RuntimeError: Form data requires "python-multipart" to be installed. 
+You can install "python-multipart" with: 
+
+pip install python-multipart
+
+ 
+No logs in dist folder 
