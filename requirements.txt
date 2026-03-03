@@ -7,5 +7,5 @@ python-vlc==3.0.20123
 requests==2.31.0
 python-dotenv==1.0.0
 Pillow>=10.0.0
-pywin32>=305
+pywin32>=305; sys_platform == "win32"
 packaging>=23.0

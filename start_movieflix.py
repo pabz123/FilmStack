@@ -126,13 +126,16 @@ def start_backend_threaded():
 def start_backend_subprocess():
     """Start backend as subprocess (for running from source)."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    venv_python = os.path.join(current_dir, 'venv', 'Scripts', 'pythonw.exe')
-    
+    if sys.platform == 'win32':
+        venv_python = os.path.join(current_dir, 'venv', 'Scripts', 'pythonw.exe')
+    else:
+        venv_python = os.path.join(current_dir, 'venv', 'bin', 'python')
+
     try:
         if sys.platform == 'win32':
             DETACHED_PROCESS = 0x00000008
             CREATE_NO_WINDOW = 0x08000000
-            
+
             subprocess.Popen(
                 [venv_python, '-m', 'uvicorn', 'backend.main:app', '--host', '0.0.0.0', '--port', '8765'],
                 cwd=current_dir,
@@ -251,7 +254,8 @@ if __name__ == "__main__":
                 "1. Close and restart MovieFlix\n"
                 "2. Check movieflix_startup.log for details\n"
                 "3. Make sure no firewall is blocking port 8765\n"
-                "4. Check Windows Firewall settings"
+                "   Windows: check Windows Firewall settings\n"
+                "   Linux:   run 'sudo ufw status' and allow port 8765"
             )
             sys.exit(1)
         except Exception as e:

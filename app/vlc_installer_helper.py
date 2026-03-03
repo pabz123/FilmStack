@@ -133,21 +133,36 @@ class VLCNotFoundDialog(QDialog):
     def download_vlc(self):
         """Open VLC download page in browser"""
         try:
-            url = "https://www.videolan.org/vlc/download-windows.html"
+            if sys.platform == 'win32':
+                url = "https://www.videolan.org/vlc/download-windows.html"
+            elif sys.platform == 'darwin':
+                url = "https://www.videolan.org/vlc/download-macosx.html"
+            else:
+                url = "https://www.videolan.org/vlc/#download"
             QDesktopServices.openUrl(QUrl(url))
-            QMessageBox.information(
-                self,
-                "Download Started",
-                "VLC download page opened in your browser.\n\n"
-                "After installing VLC, click 'Check Again' below."
-            )
+            if sys.platform.startswith('linux'):
+                QMessageBox.information(
+                    self,
+                    "Install VLC on Linux",
+                    "On Ubuntu/Debian, run in a terminal:\n\n"
+                    "  sudo apt update && sudo apt install vlc\n\n"
+                    "After installing VLC, click 'Check Again' below."
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Download Started",
+                    "VLC download page opened in your browser.\n\n"
+                    "After installing VLC, click 'Check Again' below."
+                )
         except Exception as e:
             QMessageBox.warning(
                 self,
                 "Error",
                 f"Could not open browser.\n\n"
-                f"Please visit manually:\n"
-                f"https://www.videolan.org/vlc/\n\n"
+                f"Please install VLC:\n"
+                f"  Ubuntu/Debian: sudo apt install vlc\n"
+                f"  Other Linux:   https://www.videolan.org/vlc/\n\n"
                 f"Error: {str(e)}"
             )
     

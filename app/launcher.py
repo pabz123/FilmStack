@@ -95,7 +95,7 @@ class StartupThread(QThread):
                     self.error.emit(f"Backend returned status {response.status_code}")
                     return
             except requests.exceptions.ConnectionError:
-                self.error.emit("Cannot connect to backend.\nPlease start backend first (start_backend.bat)")
+                self.error.emit("Cannot connect to backend.\nPlease start the backend first (run start_movieflix.py)")
                 return
             except Exception as e:
                 self.error.emit(f"Backend error: {str(e)}")
@@ -289,15 +289,16 @@ def main():
         app.icon_path = icon_path
         
         # IMPORTANT: Set Windows AppUserModelID for proper taskbar icon
-        try:
-            import ctypes
-            myappid = 'movieflix.streamingapp.1.0'  # Unique app ID
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-            print(f"✓ Application icon set: {icon_path}")
-            _startup_log(f"Icon set: {icon_path}")
-        except Exception as e:
-            print(f"⚠ Could not set AppUserModelID: {e}")
-            _startup_log(f"Could not set AppUserModelID: {e}")
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                myappid = 'movieflix.streamingapp.1.0'  # Unique app ID
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+                print(f"✓ Application icon set: {icon_path}")
+                _startup_log(f"Icon set: {icon_path}")
+            except Exception as e:
+                print(f"⚠ Could not set AppUserModelID: {e}")
+                _startup_log(f"Could not set AppUserModelID: {e}")
     else:
         app.icon_path = None
         print(f"⚠ Icon not found at: {icon_path}")
