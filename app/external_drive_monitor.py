@@ -6,7 +6,7 @@ Monitors external drives (USB, external HDD) and displays their content
 as temporary cards without adding to database.
 
 Features:
-- Detects internal vs external drives
+- Detects internal vs external drives (Windows and Linux)
 - Scans external drives for media
 - Creates temporary virtual cards
 - Auto-removes cards when drive disconnected
@@ -80,12 +80,65 @@ def get_drive_type(drive_letter):
         return 'unknown'
 
 
+def get_linux_external_mounts():
+    """
+    Return a list of mount points that are likely external drives on Linux.
+
+    Reads /proc/mounts and filters to USB/removable media typically mounted
+    under /media or /run/media, as well as any ext4/exfat/ntfs/vfat
+    mounts that are not system paths.
+
+    Returns:
+        list[str]: List of mount-point paths considered external.
+    """
+    external = []
+    _SYSTEM_PREFIXES = ('/', '/boot', '/home', '/tmp', '/var', '/usr',
+                        '/opt', '/srv', '/run', '/sys', '/proc', '/dev',
+                        '/snap', '/etc')
+    try:
+        with open('/proc/mounts', 'r') as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) < 3:
+                    continue
+                device, mount_point, fs_type = parts[0], parts[1], parts[2]
+
+                # Skip virtual/system filesystems
+                if fs_type in ('sysfs', 'proc', 'devtmpfs', 'devpts', 'tmpfs',
+                               'cgroup', 'cgroup2', 'pstore', 'efivarfs',
+                               'bpf', 'tracefs', 'debugfs', 'securityfs',
+                               'fusectl', 'hugetlbfs', 'mqueue', 'overlay',
+                               'squashfs', 'iso9660'):
+                    continue
+
+                # Common external mount prefixes on Ubuntu/Debian
+                if (mount_point.startswith('/media/') or
+                        mount_point.startswith('/run/media/')):
+                    external.append(mount_point)
+                    continue
+
+                # Removable-friendly filesystems on non-system paths
+                if fs_type in ('vfat', 'exfat', 'ntfs', 'fuseblk'):
+                    # Reject anything that starts with a known system prefix
+                    if not any(mount_point == p or mount_point.startswith(p + '/')
+                               for p in _SYSTEM_PREFIXES):
+                        external.append(mount_point)
+    except FileNotFoundError:
+        print("Warning: /proc/mounts not found – external drive detection unavailable")
+    except PermissionError:
+        print("Warning: permission denied reading /proc/mounts")
+    except Exception as e:
+        print(f"Error reading /proc/mounts: {e}")
+    return external
+
+
 def get_available_drives():
     """
     Get all available drives categorized by type.
     
     Returns:
-        dict: {'internal': ['C', 'D'], 'external': ['E', 'F']}
+        dict: {'internal': ['C', 'D'], 'external': ['E', 'F']}  (Windows)
+              {'internal': [], 'external': ['/media/user/USB']}  (Linux)
     """
     drives = {'internal': [], 'external': []}
     
@@ -98,6 +151,8 @@ def get_available_drives():
                     drives['internal'].append(letter)
                 elif drive_type == 'external':
                     drives['external'].append(letter)
+    elif platform.system() == 'Linux':
+        drives['external'] = get_linux_external_mounts()
     
     return drives
 
@@ -114,7 +169,11 @@ class ExternalDriveScanner(QThread):
     def run(self):
         """Scan the external drive"""
         try:
-            drive_path = f"{self.drive_letter}:\\"
+            # On Linux the 'drive_letter' is actually a full mount-point path
+            if platform.system() == 'Windows':
+                drive_path = f"{self.drive_letter}:\\"
+            else:
+                drive_path = self.drive_letter
             print(f"🔍 Scanning external drive {drive_path}...")
             
             movies = []
